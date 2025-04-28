@@ -40,14 +40,15 @@ else:
 print("Obtendo NOTIFICATION_CHANNEL_ID...")
 NOTIFICATION_CHANNEL_ID = os.getenv("NOTIFICATION_CHANNEL_ID")
 if not NOTIFICATION_CHANNEL_ID:
-    print("Erro: NOTIFICATION_CHANNEL_ID não encontrado nas variáveis de ambiente.")
-    raise ValueError("NOTIFICATION_CHANNEL_ID not found in environment variables")
-try:
-    NOTIFICATION_CHANNEL_ID = int(NOTIFICATION_CHANNEL_ID)
-    print(f"NOTIFICATION_CHANNEL_ID configurado como: {NOTIFICATION_CHANNEL_ID}")
-except ValueError:
-    print("Erro: NOTIFICATION_CHANNEL_ID deve ser um número inteiro.")
-    raise ValueError("NOTIFICATION_CHANNEL_ID must be an integer")
+    print("Aviso: NOTIFICATION_CHANNEL_ID não encontrado nas variáveis de ambiente. Notificações automáticas serão desativadas.")
+    NOTIFICATION_CHANNEL_ID = None
+else:
+    try:
+        NOTIFICATION_CHANNEL_ID = int(NOTIFICATION_CHANNEL_ID)
+        print(f"NOTIFICATION_CHANNEL_ID configurado como: {NOTIFICATION_CHANNEL_ID}")
+    except ValueError:
+        print("Erro: NOTIFICATION_CHANNEL_ID deve ser um número inteiro.")
+        raise ValueError("NOTIFICATION_CHANNEL_ID must be an integer")
 
 # Lista para rastrear jogos já notificados (evitar notificações duplicadas)
 notified_matches = []
@@ -315,6 +316,12 @@ def get_upcoming_matches():
 async def check_upcoming_matches():
     while True:
         try:
+            # Verifica se NOTIFICATION_CHANNEL_ID está definido
+            if NOTIFICATION_CHANNEL_ID is None:
+                print("NOTIFICATION_CHANNEL_ID não está definido. Notificações automáticas desativadas.")
+                await asyncio.sleep(21600)  # Verifica a cada 6 horas
+                continue
+
             # Usa a função get_upcoming_matches para aproveitar o cache
             upcoming_matches_text = get_upcoming_matches()
             # Verifica se há jogos no cache
