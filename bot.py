@@ -89,11 +89,24 @@ async def on_interaction(interaction: discord.Interaction):
         )
     elif custom_id == "redes":
         await interaction.response.edit_message(
-            content="🌐 Redes Sociais da FURIA:\n\n"
+            content="🌐 Redes Sociais da FURIA e Criadores de Conteúdo:\n\n"
+                    "**Redes Oficiais da FURIA:**\n"
                     "🐦 [Twitter](https://twitter.com/FURIA)\n"
                     "▶️ [YouTube](https://youtube.com/@furiaggcs?si=xtcq9u5MZGFzg2G-)\n"
                     "📸 [Instagram](https://www.instagram.com/furiagg/)\n"
-                    "🛒 [Loja Oficial](https://store.furia.gg/)",
+                    "📺 [Twitch - FURIAtv](https://www.twitch.tv/furiatv)\n"
+                    "🛒 [Loja Oficial](https://store.furia.gg/)\n\n"
+                    "**Criadores de Conteúdo e Streamers da FURIA CS:**\n"
+                    "🎥 ivd (Conteúdo de CS e IRL):\n"
+                    " - [Twitch](https://www.twitch.tv/ivd)\n"
+                    " - [Instagram](https://www.instagram.com/ivd.cs/)\n"
+                    " - [YouTube](https://www.youtube.com/@ivd)\n"
+                    "🎮 Mose (Streams de CS:GO, Valorant e mais):\n"
+                    " - [Twitch](https://www.twitch.tv/mose)\n"
+                    " - [Instagram](https://www.instagram.com/moisesalves/)\n"
+                    "🔫 izaa (Jogadora profissional e streamer de CS:GO):\n"
+                    " - [Twitch](https://www.twitch.tv/izaa)\n"
+                    " - [Instagram](https://www.instagram.com/izaagalle/)",
             view=back_view
         )
     elif custom_id == "voltar":
