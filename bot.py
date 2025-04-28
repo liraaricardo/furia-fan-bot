@@ -20,23 +20,26 @@ tree = app_commands.CommandTree(client)
 def get_upcoming_matches():
     try:
         url = "https://www.hltv.org/team/8297/furia#tab-matchesBox"
-        headers = {'User-Agent': 'Mozilla/5.0'}
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
         response = requests.get(url, headers=headers)
+        response.raise_for_status()  # Levanta um erro se a requisição falhar
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        upcoming_matches = soup.find_all('div', class_='upcomingMatch')
+        upcoming_matches = soup.find_all('div', class_='upcoming-match')
         if not upcoming_matches:
             return "Atualmente, não há partidas futuras agendadas para a FURIA.\n\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
 
         matches_text = "📅 Próximos jogos da FURIA:\n\n"
         for match in upcoming_matches[:3]:  # Limita a 3 partidas
-            teams = match.find_all('div', class_='matchTeamName')
+            teams = match.find_all('div', class_='team')
             if len(teams) < 2:
                 continue
             opponent = teams[1].text.strip() if teams[1].text.strip() != "FURIA" else teams[0].text.strip()
-            date = match.find('div', class_='matchTime').text.strip()
-            event = match.find('div', class_='matchEventName').text.strip()
-            matches_text += f"- FURIA vs {opponent} | {date} | {event}\n"
+            date = match.find('div', class_='time') or match.find('div', class_='match-time')
+            date_text = date.text.strip() if date else "Data não disponível"
+            event = match.find('span', class_='event-name')
+            event_text = event.text.strip() if event else "Evento não disponível"
+            matches_text += f"- FURIA vs {opponent} | {date_text} | {event_text}\n"
         return matches_text
     except Exception as e:
         return f"Erro ao buscar próximos jogos: {str(e)}\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
@@ -45,23 +48,37 @@ def get_upcoming_matches():
 def get_recent_results():
     try:
         url = "https://www.hltv.org/team/8297/furia#tab-matchesBox"
-        headers = {'User-Agent': 'Mozilla/5.0'}
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
         response = requests.get(url, headers=headers)
+        response.raise_for_status()  # Levanta um erro se a requisição falhar
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        recent_results = soup.find_all('div', class_='pastMatch')
+        # Busca os resultados passados (ajustado para a nova estrutura da HLTV)
+        recent_results = soup.find_all('tr', class_='table')  # Ajustado para a nova classe usada pela HLTV
         if not recent_results:
             return "Não há resultados recentes disponíveis.\n\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
 
         results_text = "✅ Últimos resultados da FURIA:\n\n"
-        for result in recent_results[:3]:  # Limita a 3 resultados
-            teams = result.find_all('div', class_='matchTeamName')
+        for result in recent_results[:4]:  # Limita a 4 resultados (para incluir os da imagem)
+            # Busca os times
+            teams = result.find_all('span', class_='team-name')
             if len(teams) < 2:
                 continue
             opponent = teams[1].text.strip() if teams[1].text.strip() != "FURIA" else teams[0].text.strip()
-            score = result.find('span', class_='matchScore').text.strip()
-            event = result.find('div', class_='matchEventName').text.strip()
-            results_text += f"- FURIA {score} {opponent} | {event}\n"
+
+            # Busca o placar
+            score = result.find('td', class_='result-score')
+            score_text = score.text.strip() if score else "N/A"
+
+            # Busca o evento
+            event = result.find('span', class_='event-name')
+            event_text = event.text.strip() if event else "Evento não disponível"
+
+            # Busca a data
+            date = result.find('td', class_='date')
+            date_text = date.text.strip() if date else "Data não disponível"
+
+            results_text += f"- {date_text}: FURIA {score_text} {opponent} | {event_text}\n"
         return results_text
     except Exception as e:
         return f"Erro ao buscar resultados recentes: {str(e)}\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
@@ -124,11 +141,11 @@ async def on_interaction(interaction: discord.Interaction):
         await interaction.response.edit_message(
             content="🧩 Conheça a line-up atual da FURIA:\n\n"
                     "🎯 KSCERATO: Rifler técnico e referência de consistência.\n"
-                    "🔥 yuurih: Jogador versátil e extremamente confiável.\n"
-                    "🎓 FalleN: Lenda brasileira, IGL e AWPer da equipe.\n"
-                    "🧊 molodoy: Novo AWP da equipe, jovem promessa do Cazaquistão.\n"
-                    "⚡ drop: Promessa brasileira, campeão da IEM Fall 2021.\n"
-                    "🧠 GuerrI: Coach e estrategista da FURIA.",
+                    "🔥 yuurih: Rifler versátil e extremamente confiável.\n"
+                    "🎓 FalleN: Lenda brasileira, agora rifler e IGL da equipe.\n"
+                    "🧊 molodoy: AWPer do Cazaquistão, jovem promessa no cenário internacional.\n"
+                    "⚡ YEKINDAR: Rifler agressivo da Letônia, trazendo experiência internacional.\n"
+                    "🧠 sidde: Coach e estrategista da FURIA.",
             view=back_view
         )
     elif custom_id == "redes":
@@ -181,3 +198,6 @@ if not TOKEN:
 
 # Inicia o bot
 client.run(TOKEN)
+
+
+ 
