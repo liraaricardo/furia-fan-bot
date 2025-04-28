@@ -234,3 +234,7 @@ if not TOKEN:
 
 # Inicia o bot
 client.run(TOKEN)
+           
+ 
+      
+ 
