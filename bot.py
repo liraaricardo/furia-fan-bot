@@ -53,31 +53,22 @@ def get_recent_results():
         response.raise_for_status()  # Levanta um erro se a requisição falhar
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Busca os resultados passados (ajustado para a nova estrutura da HLTV)
-        recent_results = soup.find_all('tr', class_='table')  # Ajustado para a nova classe usada pela HLTV
+        recent_results = soup.find_all('tr', class_='table')
         if not recent_results:
             return "Não há resultados recentes disponíveis.\n\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
 
         results_text = "✅ Últimos resultados da FURIA:\n\n"
-        for result in recent_results[:4]:  # Limita a 4 resultados (para incluir os da imagem)
-            # Busca os times
+        for result in recent_results[:4]:
             teams = result.find_all('span', class_='team-name')
             if len(teams) < 2:
                 continue
             opponent = teams[1].text.strip() if teams[1].text.strip() != "FURIA" else teams[0].text.strip()
-
-            # Busca o placar
             score = result.find('td', class_='result-score')
             score_text = score.text.strip() if score else "N/A"
-
-            # Busca o evento
             event = result.find('span', class_='event-name')
             event_text = event.text.strip() if event else "Evento não disponível"
-
-            # Busca a data
             date = result.find('td', class_='date')
             date_text = date.text.strip() if date else "Data não disponível"
-
             results_text += f"- {date_text}: FURIA {score_text} {opponent} | {event_text}\n"
         return results_text
     except Exception as e:
@@ -98,9 +89,10 @@ async def on_ready():
 async def start(interaction: discord.Interaction):
     # Cria os botões
     jogos_button = Button(label="📅 Próximos Jogos", style=ButtonStyle.primary, custom_id="jogos")
-    resultados_button = Button(label="✅ Últimos Resultados", style=ButtonStyle.primary, custom_id="resultados")
+    resultados_button = Button(label="✅ Últimos Resultados", style=ButtonStyle.primary, custom_id experiencing issues")
     lineup_button = Button(label="🧩 Conheça nossa Line-up", style=ButtonStyle.primary, custom_id="lineup")
     redes_button = Button(label="🌐 Redes Sociais", style=ButtonStyle.primary, custom_id="redes")
+    notificacoes_button = Button(label="🔔 Ativar Notificações", style=ButtonStyle.primary, custom_id="notificacoes")
 
     # Cria a view e adiciona os botões
     view = View()
@@ -108,6 +100,7 @@ async def start(interaction: discord.Interaction):
     view.add_item(resultados_button)
     view.add_item(lineup_button)
     view.add_item(redes_button)
+    view.add_item(notificacoes_button)
 
     # Envia a mensagem com os botões
     await interaction.response.send_message("🐾 FALA, FURIOSO(A)! Escolha uma opção abaixo:", view=view)
@@ -157,17 +150,60 @@ async def on_interaction(interaction: discord.Interaction):
                     "🛒 [Loja Oficial](https://store.furia.gg/)",
             view=back_view
         )
+    elif custom_id == "notificacoes":
+        # Botões para ativar/desativar notificações
+        ativar_button = Button(label="Ativar Notificações", style=ButtonStyle.green, custom_id="ativar_notificacoes")
+        desativar_button = Button(label="Desativar Notificações", style=ButtonStyle.red, custom_id="desativar_notificacoes")
+        notificacoes_view = View()
+        notificacoes_view.add_item(ativar_button)
+        notificacoes_view.add_item(desativar_button)
+        notificacoes_view.add_item(back_button)
+
+        await interaction.response.edit_message(
+            content="🔔 Notificações de Jogos:\n\nVocê gostaria de receber notificações para os próximos jogos da FURIA?",
+            view=notificacoes_view
+        )
+    elif custom_id == "ativar_notificacoes":
+        role = discord.utils.get(interaction.guild.roles, name="Notificações FURIA")
+        if not role:
+            role = await interaction.guild.create_role(name="Notificações FURIA", mentionable=True)
+        if role not in interaction.user.roles:
+            await interaction.user.add_roles(role)
+            await interaction.response.edit_message(
+                content="🔔 Notificações ativadas! Você será avisado sobre os próximos jogos da FURIA.",
+                view=back_view
+            )
+        else:
+            await interaction.response.edit_message(
+                content="🔔 Você já tem as notificações ativadas!",
+                view=back_view
+            )
+    elif custom_id == "desativar_notificacoes":
+        role = discord.utils.get(interaction.guild.roles, name="Notificações FURIA")
+        if role and role in interaction.user.roles:
+            await interaction.user.remove_roles(role)
+            await interaction.response.edit_message(
+                content="🔔 Notificações desativadas! Você não será mais avisado sobre os próximos jogos da FURIA.",
+                view=back_view
+            )
+        else:
+            await interaction.response.edit_message(
+                content="🔔 Você não tem as notificações ativadas!",
+                view=back_view
+            )
     elif custom_id == "voltar":
         jogos_button = Button(label="📅 Próximos Jogos", style=ButtonStyle.primary, custom_id="jogos")
         resultados_button = Button(label="✅ Últimos Resultados", style=ButtonStyle.primary, custom_id="resultados")
         lineup_button = Button(label="🧩 Conheça nossa Line-up", style=ButtonStyle.primary, custom_id="lineup")
         redes_button = Button(label="🌐 Redes Sociais", style=ButtonStyle.primary, custom_id="redes")
+        notificacoes_button = Button(label="🔔 Ativar Notificações", style=ButtonStyle.primary, custom_id="notificacoes")
 
         view = View()
         view.add_item(jogos_button)
         view.add_item(resultados_button)
         view.add_item(lineup_button)
         view.add_item(redes_button)
+        view.add_item(notificacoes_button)
 
         await interaction.response.edit_message(
             content="🐾 FALA, FURIOSO(A)! Escolha uma opção abaixo:",
@@ -198,6 +234,3 @@ if not TOKEN:
 
 # Inicia o bot
 client.run(TOKEN)
-
-
- 
