@@ -58,12 +58,6 @@ O bot é hospedado usando a plataforma Render. Para replicar:
 
 O projeto possui um servidor interno de health check que responde "OK" para manter a instância ativa.
 
-## Estrutura do Projeto
-
-/furia-cs-fan-bot ├── bot.py # Código principal do bot ├── README.md # Documentação do projeto ├── LICENSE # Licença MIT ├── requirements.txt# Dependências Python
-
-
-
 ## Licença
 
 Este projeto é licenciado sob a **MIT License**.  
@@ -73,4 +67,4 @@ Sinta-se livre para utilizar, modificar e contribuir!
 
 **Desenvolvido por Ricardo Lira Silva.**  
 **Desenvolvido com paixão pelo Counter-Strike e pela FURIA.**  
-
+**#DIADEFURIA**
