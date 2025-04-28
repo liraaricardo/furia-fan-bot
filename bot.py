@@ -50,7 +50,7 @@ def get_recent_results():
         soup = BeautifulSoup(response.text, 'html.parser')
 
         recent_results = soup.find_all('div', class_='pastMatch')
-        if departamento recent_results:
+        if not recent_results:
             return "Não há resultados recentes disponíveis.\n\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
 
         results_text = "✅ Últimos resultados da FURIA:\n\n"
@@ -181,4 +181,3 @@ if not TOKEN:
 
 # Inicia o bot
 client.run(TOKEN)
-
