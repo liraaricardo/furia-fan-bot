@@ -79,34 +79,30 @@ async def on_interaction(interaction: discord.Interaction):
         await interaction.response.edit_message(
             content="🧩 Conheça a line-up atual da FURIA:\n\n"
                     "🎯 KSCERATO: Rifler técnico e referência de consistência.\n"
+                    "   [Twitch](https://www.twitch.tv/kscerato) | [Twitter](https://twitter.com/kscerato)\n"
                     "🔥 yuurih: Rifler versátil e extremamente confiável.\n"
+                    "   [Twitch](https://www.twitch.tv/yuurihfps) | [Twitter](https://twitter.com/yuurihfps)\n"
                     "🎓 FalleN: Lenda brasileira, agora rifler e IGL da equipe.\n"
+                    "   [Twitch](https://www.twitch.tv/fallen) | [Twitter](https://twitter.com/FalleNCS)\n"
                     "🧊 molodoy: AWPer do Cazaquistão, jovem promessa no cenário internacional.\n"
+                    "   [Twitch](https://www.twitch.tv/tvoy_molodoy) | [Twitter](https://twitter.com/tvoy_molodoy)\n"
                     "⚡ YEKINDAR: Rifler agressivo da Letônia, trazendo experiência internacional.\n"
-                    "🛡️ skullz: Rifler brasileiro, nova adição ao time.\n"
-                    "🧠 guerri: Coach e estrategista da FURIA.",
+                    "   [Twitch](https://www.twitch.tv/yekindar) | [Twitter](https://twitter.com/yek1ndar)\n"
+                    "🧠 Lucid: Coach e estrategista da FURIA.\n",
             view=back_view
         )
     elif custom_id == "redes":
         await interaction.response.edit_message(
-            content="🌐 Redes Sociais da FURIA e Criadores de Conteúdo:\n\n"
-                    "**Redes Oficiais da FURIA:**\n"
+            content="🌐 Redes Sociais da FURIA:\n\n"
+                    "**Redes Oficiais da FURIA**\n"
                     "🐦 [Twitter](https://twitter.com/FURIA)\n"
                     "▶️ [YouTube](https://youtube.com/@furiaggcs?si=xtcq9u5MZGFzg2G-)\n"
                     "📸 [Instagram](https://www.instagram.com/furiagg/)\n"
-                    "📺 [Twitch - FURIAtv](https://www.twitch.tv/furiatv)\n"
-                    "🛒 [Loja Oficial](https://store.furia.gg/)\n\n"
-                    "**Criadores de Conteúdo e Streamers da FURIA CS:**\n"
-                    "🎥 ivd (Conteúdo de CS e IRL):\n"
-                    " - [Twitch](https://www.twitch.tv/ivd)\n"
-                    " - [Instagram](https://www.instagram.com/ivd.cs/)\n"
-                    " - [YouTube](https://www.youtube.com/@ivd)\n"
-                    "🎮 Mose (Streams de CS:GO, Valorant e mais):\n"
-                    " - [Twitch](https://www.twitch.tv/mose)\n"
-                    " - [Instagram](https://www.instagram.com/moisesalves/)\n"
-                    "🔫 izaa (Jogadora profissional e streamer de CS:GO):\n"
-                    " - [Twitch](https://www.twitch.tv/izaa)\n"
-                    " - [Instagram](https://www.instagram.com/izaagalle/)",
+                    "🛒 [Loja Oficial](https://store.furia.gg/)\n"
+                    "📺 [FURIAtv no Twitch](https://www.twitch.tv/furiatv)\n\n"
+                    "**Streamers e Criadores de Conteúdo da FURIA CS**\n"
+                    "🎮 ableJ: [Twitch](https://www.twitch.tv/ablej) | [Twitter](https://twitter.com/ablejcs)\n"
+                    "🎮 Xarola: [Twitch](https://www.twitch.tv/xarola) | [Twitter](https://twitter.com/xarolaa_)\n",
             view=back_view
         )
     elif custom_id == "voltar":
@@ -161,3 +157,7 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Erro ao iniciar o bot: {str(e)}")
         raise
+
+   
+
+   
