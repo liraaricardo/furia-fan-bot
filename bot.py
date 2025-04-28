@@ -83,7 +83,7 @@ async def on_interaction(interaction: discord.Interaction):
                     "🔥 **yuurih**: Rifler versátil e extremamente confiável.\n"
                     "   [Twitch](https://www.twitch.tv/yuurih) | [Twitter](https://x.com/yuurih)\n\n"
                     "🎓 **FalleN**: Lenda brasileira, agora rifler e IGL da equipe.\n"
-                    "   [Twitch](https://www.twitch.tv/fallen) | [Twitter](https://twitter.com/FalleNCS)\n\n"
+                    "   [Twitter](https://twitter.com/FalleNCS)\n\n"
                     "🧊 **molodoy**: AWPer do Cazaquistão, jovem promessa no cenário internacional.\n"
                     "   [Twitter](https://twitter.com/tvoy_molodoy)\n\n"
                     "⚡ **YEKINDAR**: Rifler agressivo da Letônia, trazendo experiência internacional.\n"
