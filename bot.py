@@ -89,7 +89,7 @@ async def on_ready():
 async def start(interaction: discord.Interaction):
     # Cria os botões
     jogos_button = Button(label="📅 Próximos Jogos", style=ButtonStyle.primary, custom_id="jogos")
-    resultados_button = Button(label="✅ Últimos Resultados", style=ButtonStyle.primary, custom_id experiencing issues")
+    resultados_button = Button(label="✅ Últimos Resultados", style=ButtonStyle.primary, custom_id="resultados")
     lineup_button = Button(label="🧩 Conheça nossa Line-up", style=ButtonStyle.primary, custom_id="lineup")
     redes_button = Button(label="🌐 Redes Sociais", style=ButtonStyle.primary, custom_id="redes")
     notificacoes_button = Button(label="🔔 Ativar Notificações", style=ButtonStyle.primary, custom_id="notificacoes")
