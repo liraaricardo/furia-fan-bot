@@ -4,6 +4,8 @@ from discord.ui import Button, View
 import os
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import requests
+from bs4 import BeautifulSoup
 
 # Configura os intents
 intents = discord.Intents.default()
@@ -13,6 +15,56 @@ intents.members = True
 # Inicializa o cliente do Discord
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
+
+# Função para buscar Próximos Jogos da HLTV.org
+def get_upcoming_matches():
+    try:
+        url = "https://www.hltv.org/team/8297/furia#tab-matchesBox"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, headers=headers)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        upcoming_matches = soup.find_all('div', class_='upcomingMatch')
+        if not upcoming_matches:
+            return "Atualmente, não há partidas futuras agendadas para a FURIA.\n\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
+
+        matches_text = "📅 Próximos jogos da FURIA:\n\n"
+        for match in upcoming_matches[:3]:  # Limita a 3 partidas
+            teams = match.find_all('div', class_='matchTeamName')
+            if len(teams) < 2:
+                continue
+            opponent = teams[1].text.strip() if teams[1].text.strip() != "FURIA" else teams[0].text.strip()
+            date = match.find('div', class_='matchTime').text.strip()
+            event = match.find('div', class_='matchEventName').text.strip()
+            matches_text += f"- FURIA vs {opponent} | {date} | {event}\n"
+        return matches_text
+    except Exception as e:
+        return f"Erro ao buscar próximos jogos: {str(e)}\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
+
+# Função para buscar Últimos Resultados da HLTV.org
+def get_recent_results():
+    try:
+        url = "https://www.hltv.org/team/8297/furia#tab-matchesBox"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, headers=headers)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        recent_results = soup.find_all('div', class_='pastMatch')
+        if departamento recent_results:
+            return "Não há resultados recentes disponíveis.\n\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
+
+        results_text = "✅ Últimos resultados da FURIA:\n\n"
+        for result in recent_results[:3]:  # Limita a 3 resultados
+            teams = result.find_all('div', class_='matchTeamName')
+            if len(teams) < 2:
+                continue
+            opponent = teams[1].text.strip() if teams[1].text.strip() != "FURIA" else teams[0].text.strip()
+            score = result.find('span', class_='matchScore').text.strip()
+            event = result.find('div', class_='matchEventName').text.strip()
+            results_text += f"- FURIA {score} {opponent} | {event}\n"
+        return results_text
+    except Exception as e:
+        return f"Erro ao buscar resultados recentes: {str(e)}\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
 
 # Evento que é chamado quando o bot está pronto
 @client.event
@@ -31,20 +83,14 @@ async def start(interaction: discord.Interaction):
     jogos_button = Button(label="📅 Próximos Jogos", style=ButtonStyle.primary, custom_id="jogos")
     resultados_button = Button(label="✅ Últimos Resultados", style=ButtonStyle.primary, custom_id="resultados")
     lineup_button = Button(label="🧩 Conheça nossa Line-up", style=ButtonStyle.primary, custom_id="lineup")
-    twitter_button = Button(label="🐦 Twitter", style=ButtonStyle.link, url="https://twitter.com/FURIA")
-    youtube_button = Button(label="▶️ YouTube", style=ButtonStyle.link, url="https://youtube.com/@furiaggcs?si=xtcq9u5MZGFzg2G-")
-    instagram_button = Button(label="📸 Instagram", style=ButtonStyle.link, url="https://www.instagram.com/furiagg/")
-    loja_button = Button(label="🛒 Loja Oficial", style=ButtonStyle.link, url="https://store.furia.gg/")
+    redes_button = Button(label="🌐 Redes Sociais", style=ButtonStyle.primary, custom_id="redes")
 
     # Cria a view e adiciona os botões
     view = View()
     view.add_item(jogos_button)
     view.add_item(resultados_button)
     view.add_item(lineup_button)
-    view.add_item(twitter_button)
-    view.add_item(youtube_button)
-    view.add_item(instagram_button)
-    view.add_item(loja_button)
+    view.add_item(redes_button)
 
     # Envia a mensagem com os botões
     await interaction.response.send_message("🐾 FALA, FURIOSO(A)! Escolha uma opção abaixo:", view=view)
@@ -63,18 +109,15 @@ async def on_interaction(interaction: discord.Interaction):
     back_view.add_item(back_button)
 
     if custom_id == "jogos":
+        upcoming_matches = get_upcoming_matches()
         await interaction.response.edit_message(
-            content="📅 Próximos jogos da FURIA:\n\n"
-                    "Atualmente, não há partidas futuras agendadas para a FURIA.\n\n"
-                    "Acompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)",
+            content=upcoming_matches,
             view=back_view
         )
     elif custom_id == "resultados":
+        recent_results = get_recent_results()
         await interaction.response.edit_message(
-            content="✅ Últimos resultados da FURIA:\n\n"
-                    "- FURIA 2×0 Legacy (IEM Dallas 2025)\n"
-                    "- FURIA 0×2 Team Liquid (IEM Dallas 2025)\n"
-                    "- FURIA 1×2 G2 Esports (ESL Pro League 2025)",
+            content=recent_results,
             view=back_view
         )
     elif custom_id == "lineup":
@@ -88,23 +131,26 @@ async def on_interaction(interaction: discord.Interaction):
                     "🧠 GuerrI: Coach e estrategista da FURIA.",
             view=back_view
         )
+    elif custom_id == "redes":
+        await interaction.response.edit_message(
+            content="🌐 Redes Sociais da FURIA:\n\n"
+                    "🐦 [Twitter](https://twitter.com/FURIA)\n"
+                    "▶️ [YouTube](https://youtube.com/@furiaggcs?si=xtcq9u5MZGFzg2G-)\n"
+                    "📸 [Instagram](https://www.instagram.com/furiagg/)\n"
+                    "🛒 [Loja Oficial](https://store.furia.gg/)",
+            view=back_view
+        )
     elif custom_id == "voltar":
         jogos_button = Button(label="📅 Próximos Jogos", style=ButtonStyle.primary, custom_id="jogos")
         resultados_button = Button(label="✅ Últimos Resultados", style=ButtonStyle.primary, custom_id="resultados")
         lineup_button = Button(label="🧩 Conheça nossa Line-up", style=ButtonStyle.primary, custom_id="lineup")
-        twitter_button = Button(label="🐦 Twitter", style=ButtonStyle.link, url="https://twitter.com/FURIA")
-        youtube_button = Button(label="▶️ YouTube", style=ButtonStyle.link, url="https://youtube.com/@furiaggcs?si=xtcq9u5MZGFzg2G-")
-        instagram_button = Button(label="📸 Instagram", style=ButtonStyle.link, url="https://www.instagram.com/furiagg/")
-        loja_button = Button(label="🛒 Loja Oficial", style=ButtonStyle.link, url="https://store.furia.gg/")
+        redes_button = Button(label="🌐 Redes Sociais", style=ButtonStyle.primary, custom_id="redes")
 
         view = View()
         view.add_item(jogos_button)
         view.add_item(resultados_button)
         view.add_item(lineup_button)
-        view.add_item(twitter_button)
-        view.add_item(youtube_button)
-        view.add_item(instagram_button)
-        view.add_item(loja_button)
+        view.add_item(redes_button)
 
         await interaction.response.edit_message(
             content="🐾 FALA, FURIOSO(A)! Escolha uma opção abaixo:",
@@ -135,3 +181,4 @@ if not TOKEN:
 
 # Inicia o bot
 client.run(TOKEN)
+
