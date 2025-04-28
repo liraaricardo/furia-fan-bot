@@ -66,5 +66,5 @@ Sinta-se livre para utilizar, modificar e contribuir!
 ---
 
 **Desenvolvido por Ricardo Lira Silva.**  
-**Desenvolvido com paixão pelo Counter-Strike e pela FURIA.**  
-**#DIADEFURIA**
+
+
