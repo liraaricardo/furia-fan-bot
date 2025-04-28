@@ -38,14 +38,12 @@ async def start(interaction: discord.Interaction):
     lineup_button = Button(label="🧩 Conheça nossa Line-up", style=ButtonStyle.primary, custom_id="lineup")
     redes_button = Button(label="🌐 Redes Sociais", style=ButtonStyle.primary, custom_id="redes")
 
-    # Cria a view e adiciona os botões
     view = View()
     view.add_item(jogos_button)
     view.add_item(resultados_button)
     view.add_item(lineup_button)
     view.add_item(redes_button)
 
-    # Envia a mensagem com os botões
     await interaction.response.send_message("🐾 FALA, FURIOSO(A)! Escolha uma opção abaixo:", view=view)
 
 # Handler para interações com botões
@@ -54,9 +52,8 @@ async def on_interaction(interaction: discord.Interaction):
     if interaction.type != discord.InteractionType.component:
         return
 
-    custom_id = interaction.data['custom_id'] if 'custom_id' in interaction.data else None
+    custom_id = interaction.data.get('custom_id')
 
-    # Botão "Voltar"
     back_button = Button(label="⬅️ Voltar", style=ButtonStyle.secondary, custom_id="voltar")
     back_view = View()
     back_view.add_item(back_button)
@@ -68,6 +65,7 @@ async def on_interaction(interaction: discord.Interaction):
                     "🔗 [Acompanhe os jogos da FURIA no HLTV.org](https://www.hltv.org/team/8297/furia#tab-matchesBox)",
             view=back_view
         )
+
     elif custom_id == "resultados":
         await interaction.response.edit_message(
             content="✅ **Últimos Resultados da FURIA**\n\n"
@@ -75,36 +73,39 @@ async def on_interaction(interaction: discord.Interaction):
                     "🔗 [Acompanhe os jogos da FURIA no HLTV.org](https://www.hltv.org/team/8297/furia#tab-matchesBox)",
             view=back_view
         )
+
     elif custom_id == "lineup":
         await interaction.response.edit_message(
             content="🧩 Conheça a line-up atual da FURIA:\n\n"
-                    "🎯 **KSCERATO**: Rifler técnico e referência de consistência.\n"
+                    "🎯 KSCERATO: Rifler técnico e referência de consistência.\n"
                     "   [Twitch](https://www.twitch.tv/kscerato) | [Twitter](https://twitter.com/kscerato)\n"
-                    "🔥 **yuurih**: Rifler versátil e extremamente confiável.\n"
-                    "   [Twitch](https://www.twitch.tv/yuurih) | [Twitter](https://twitter.com/yuurih)\n"
-                    "🎓 **FalleN**: Lenda brasileira, agora rifler e IGL da equipe.\n"
+                    "🔥 yuurih: Rifler versátil e extremamente confiável.\n"
+                    "   [Twitch](https://www.twitch.tv/yuurih)\n"
+                    "🎓 FalleN: Lenda brasileira, agora rifler e IGL da equipe.\n"
                     "   [Twitch](https://www.twitch.tv/fallen) | [Twitter](https://twitter.com/FalleNCS)\n"
-                    "🧊 **molodoy**: AWPer do Cazaquistão, jovem promessa no cenário internacional.\n"
-                    "   [Twitter](https://twitter.com/tvoy_molodoy)\n"
-                    "⚡ **YEKINDAR**: Rifler agressivo da Letônia, trazendo experiência internacional.\n"
+                    "🧊 molodoy: AWPer do Cazaquistão, jovem promessa no cenário internacional.\n"
+                    "   [Twitch](https://www.twitch.tv/tvoy_molodoy) | [Twitter](https://twitter.com/tvoy_molodoy)\n"
+                    "⚡ YEKINDAR: Rifler agressivo da Letônia, trazendo experiência internacional.\n"
                     "   [Twitch](https://www.twitch.tv/yekindar) | [Twitter](https://twitter.com/yek1ndar)\n"
-                    "🧠 **Lucid**: Coach e estrategista da FURIA.\n",
+                    "🧠 Lucid: Coach e estrategista da FURIA.\n",
             view=back_view
         )
+
     elif custom_id == "redes":
         await interaction.response.edit_message(
             content="🌐 Redes Sociais da FURIA:\n\n"
                     "**Redes Oficiais da FURIA**\n"
                     "🐦 [Twitter](https://twitter.com/FURIA)\n"
-                    "▶️ [YouTube](https://www.youtube.com/@furiaggcs)\n"
+                    "▶️ [YouTube CS](https://www.youtube.com/@furiaggcs)\n"
                     "📸 [Instagram](https://www.instagram.com/furiagg/)\n"
                     "🛒 [Loja Oficial](https://store.furia.gg/)\n"
-                    "📺 [FURIAtv no Twitch](https://www.twitch.tv/furiatv)\n\n"
+                    "📺 [FURIA TV no Twitch](https://www.twitch.tv/furiatv)\n\n"
                     "**Streamers e Criadores de Conteúdo da FURIA CS**\n"
-                    "🎮 **ableJ**: [Twitch](https://m.twitch.tv/ablej/home)\n"
-                    "🎮 **Xarola**: [Twitch](https://www.twitch.tv/xarola)\n",
+                    "🎮 ableJ: [Twitch](https://m.twitch.tv/ablej/home)\n"
+                    "🎮 Xarola: [Twitch](https://m.twitch.tv/xarola_/home) | [Twitter](https://x.com/xarolao?s=21)\n",
             view=back_view
         )
+
     elif custom_id == "voltar":
         jogos_button = Button(label="📅 Próximos Jogos", style=ButtonStyle.primary, custom_id="jogos")
         resultados_button = Button(label="✅ Últimos Resultados", style=ButtonStyle.primary, custom_id="resultados")
@@ -122,7 +123,7 @@ async def on_interaction(interaction: discord.Interaction):
             view=view
         )
 
-# Endpoint de health check para evitar inatividade no Render
+# Endpoint de health check
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -140,7 +141,7 @@ def start_health_check_server():
 print("Iniciando servidor de health check...")
 threading.Thread(target=start_health_check_server, daemon=True).start()
 
-# Obtém o token do bot a partir das variáveis de ambiente
+# Obtém o token do bot
 print("Obtendo DISCORD_BOT_TOKEN...")
 TOKEN = os.getenv('DISCORD_BOT_TOKEN')
 if not TOKEN:
@@ -157,5 +158,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Erro ao iniciar o bot: {str(e)}")
         raise
+
 
 
