@@ -76,7 +76,11 @@ def get_upcoming_matches():
                 matches_text = "📅 Próximos jogos da FURIA:\n\n"
                 for match in matches[:3]:  # Limita a 3 partidas
                     opponent = match['opponents'][1]['opponent']['name'] if match['opponents'][0]['opponent']['id'] == FURIA_ID else match['opponents'][0]['opponent']['name']
-                    date = datetime.strptime(match['begin_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y %H:%M UTC")
+                    # Verifica se begin_at é None
+                    if match['begin_at'] is None:
+                        date = "Data não disponível"
+                    else:
+                        date = datetime.strptime(match['begin_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y %H:%M UTC")
                     event = match['league']['name']
                     matches_text += f"- FURIA vs {opponent} | {date} | {event}\n"
                 result = matches_text
@@ -122,7 +126,11 @@ def get_recent_results():
                     opponent = match['opponents'][1]['opponent']['name'] if match['opponents'][0]['opponent']['id'] == FURIA_ID else match['opponents'][0]['opponent']['name']
                     score = f"{match['results'][0]['score']} : {match['results'][1]['score']}" if match['results'] else "N/A"
                     event = match['league']['name']
-                    date = datetime.strptime(match['begin_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y")
+                    # Verifica se begin_at é None
+                    if match['begin_at'] is None:
+                        date = "Data não disponível"
+                    else:
+                        date = datetime.strptime(match['begin_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y")
                     results_text += f"- {date}: FURIA {score} {opponent} | {event}\n"
                 result = results_text
 
@@ -174,6 +182,10 @@ async def check_upcoming_matches():
                     continue  # Pula jogos já notificados
 
                 # Obtém a data do jogo
+                if match['begin_at'] is None:
+                    print(f"Partida {match_id} não tem data definida, pulando notificação.")
+                    continue  # Pula partidas sem data
+
                 match_time = datetime.strptime(match['begin_at'], "%Y-%m-%dT%H:%M:%SZ")
                 now = datetime.utcnow()
                 time_until_match = match_time - now
