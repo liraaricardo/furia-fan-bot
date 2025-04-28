@@ -78,186 +78,209 @@ def validate_api_token():
         print(f"Falha ao validar o token da API da PandaScore: {str(e)}")
         return False
 
-# Função para buscar resultados recentes do Liquipedia (fallback)
-def get_recent_results_liquipedia():
+# Função para buscar resultados recentes do EGamersWorld (fallback)
+def get_recent_results_egamersworld():
     for attempt in range(3):  # Tenta até 3 vezes
         try:
-            # URL da página da FURIA no Liquipedia
-            url = "https://liquipedia.net/counterstrike/FURIA_Esports"
-            print(f"Tentativa {attempt + 1}/3 de buscar resultados no Liquipedia")
+            # URL da página de partidas no EGamersWorld
+            url = "https://egamersworld.com/counterstrike/matches"
+            print(f"Tentativa {attempt + 1}/3 de buscar resultados no EGamersWorld")
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             }
             response = requests.get(url, headers=headers, timeout=10)
             response.raise_for_status()
-            print("Resposta recebida do Liquipedia com sucesso.")
+            print("Resposta recebida do EGamersWorld com sucesso.")
             soup = BeautifulSoup(response.text, 'html.parser')
 
             # Log do HTML para depuração
             print("HTML recebido (primeiros 500 caracteres):")
             print(str(soup)[:500])
 
-            # Encontra a seção de resultados recentes
-            recent_matches_section = soup.find('span', id='Recent_Matches')
-            if not recent_matches_section:
-                print("Seção 'Recent Matches' não encontrada no Liquipedia")
-                return "Não há resultados recentes disponíveis no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+            # Encontra a seção de partidas
+            match_blocks = soup.find_all('div', class_='match-block')
+            if not match_blocks:
+                print("Blocos de partidas não encontrados no EGamersWorld")
+                return "Não há resultados recentes disponíveis no EGamersWorld.\n\nAcompanhe atualizações em: [EGamersWorld](https://egamersworld.com/counterstrike/matches)"
 
-            # Encontra a tabela de resultados recentes
-            matches_table = recent_matches_section.find_parent().find_next('table', class_='wikitable wikitable-striped')
-            if not matches_table:
-                print("Tabela de resultados recentes não encontrada no Liquipedia")
-                return "Não há resultados recentes disponíveis no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+            results_text = "✅ Últimos resultados da FURIA (via EGamersWorld):\n\n"
+            current_date = datetime.utcnow()
+            match_count = 0
+            for block in match_blocks:
+                if match_count >= 4:  # Limita a 4 resultados
+                    break
 
-            # Extrai as linhas da tabela (limita a 4 resultados)
-            matches = matches_table.find_all('tr')[1:5]  # Ignora o cabeçalho
-            if not matches:
-                print("Nenhuma partida recente encontrada na tabela do Liquipedia")
-                return "Não há resultados recentes disponíveis no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+                # Verifica se a partida envolve a FURIA
+                teams = block.find_all('div', class_='match-team')
+                if len(teams) != 2:
+                    continue
+                team1 = teams[0].text.strip().lower()
+                team2 = teams[1].text.strip().lower()
+                if "furia" not in team1 and "furia" not in team2:
+                    continue
 
-            results_text = "✅ Últimos resultados da FURIA (via Liquipedia):\n\n"
-            for match in matches:
-                cells = match.find_all('td')
-                if len(cells) < 5:
-                    print("Linha incompleta na tabela de resultados recentes")
+                # Verifica se a partida está concluída
+                status = block.find('div', class_='match-status')
+                if not status or "finished" not in status.text.lower():
                     continue
 
                 # Extrai a data
-                date = cells[0].text.strip()
-                if not date:
+                date_elem = block.find('div', class_='match-date')
+                date = date_elem.text.strip() if date_elem else "Data não disponível"
+                try:
+                    match_date = datetime.strptime(date, "%d.%m.%Y %H:%M")
+                    if match_date > current_date:
+                        continue  # Pula partidas futuras
+                    date = match_date.strftime("%d/%m/%Y")
+                except ValueError:
+                    print(f"Formato de data inválido: {date}")
                     date = "Data não disponível"
 
                 # Extrai o oponente
-                opponent = cells[1].text.strip()
+                opponent = team2 if "furia" in team1 else team1
+                opponent = opponent.capitalize()
 
                 # Extrai o placar
-                score = cells[2].text.strip().replace(':', ' - ')
-                if not score or 'TBD' in score:
-                    score = "N/A"
+                score_elem = block.find('div', class_='match-score')
+                score = score_elem.text.strip().replace(':', ' - ') if score_elem else "N/A"
 
                 # Extrai o evento
-                event = cells[4].text.strip()
+                event_elem = block.find('div', class_='match-event')
+                event = event_elem.text.strip() if event_elem else "Evento desconhecido"
 
                 results_text += f"- {date}: FURIA {score} {opponent} | {event}\n"
+                match_count += 1
 
-            if results_text == "✅ Últimos resultados da FURIA (via Liquipedia):\n\n":
-                print("Nenhum resultado válido foi extraído do Liquipedia")
-                return "Não há resultados recentes disponíveis no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+            if match_count == 0:
+                print("Nenhum resultado recente da FURIA foi encontrado no EGamersWorld")
+                return "Não há resultados recentes da FURIA disponíveis no EGamersWorld.\n\nAcompanhe atualizações em: [EGamersWorld](https://egamersworld.com/counterstrike/matches)"
 
             return results_text
         except requests.exceptions.HTTPError as e:
-            print(f"Erro HTTP ao buscar resultados no Liquipedia: {str(e)}")
+            print(f"Erro HTTP ao buscar resultados no EGamersWorld: {str(e)}")
             if e.response.status_code == 403:
-                print("Acesso bloqueado pelo Liquipedia (403 Forbidden)")
-                return "⚠️ O Liquipedia bloqueou o acesso (403 Forbidden). Tente novamente mais tarde.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+                print("Acesso bloqueado pelo EGamersWorld (403 Forbidden)")
+                return "⚠️ O EGamersWorld bloqueou o acesso (403 Forbidden). Tente novamente mais tarde.\nAcompanhe atualizações em: [EGamersWorld](https://egamersworld.com/counterstrike/matches)"
             elif e.response.status_code == 429:
-                print("Limite de requisições excedido no Liquipedia (429 Too Many Requests)")
+                print("Limite de requisições excedido no EGamersWorld (429 Too Many Requests)")
                 if attempt < 2:  # Não espera na última tentativa
                     wait_time = (attempt + 1) * 5  # Espera 5s, 10s, 15s
                     print(f"Aguardando {wait_time} segundos antes de tentar novamente...")
                     time.sleep(wait_time)
                     continue
-                return "⚠️ Limite de requisições excedido no Liquipedia (429 Too Many Requests). Tente novamente mais tarde.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
-            return f"⚠️ Erro HTTP ao buscar resultados no Liquipedia: {str(e)}.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+                return "⚠️ Limite de requisições excedido no EGamersWorld (429 Too Many Requests). Tente novamente mais tarde.\nAcompanhe atualizações em: [EGamersWorld](https://egamersworld.com/counterstrike/matches)"
+            return f"⚠️ Erro HTTP ao buscar resultados no EGamersWorld: {str(e)}.\nAcompanhe atualizações em: [EGamersWorld](https://egamersworld.com/counterstrike/matches)"
         except requests.exceptions.RequestException as e:
-            print(f"Erro de requisição ao buscar resultados no Liquipedia: {str(e)}")
+            print(f"Erro de requisição ao buscar resultados no EGamersWorld: {str(e)}")
             if attempt < 2:  # Não espera na última tentativa
                 wait_time = (attempt + 1) * 5
                 print(f"Aguardando {wait_time} segundos antes de tentar novamente...")
                 time.sleep(wait_time)
                 continue
-            return f"⚠️ Erro de requisição ao buscar resultados no Liquipedia: {str(e)}.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+            return f"⚠️ Erro de requisição ao buscar resultados no EGamersWorld: {str(e)}.\nAcompanhe atualizações em: [EGamersWorld](https://egamersworld.com/counterstrike/matches)"
         except Exception as e:
-            print(f"Erro inesperado ao buscar resultados no Liquipedia: {str(e)}")
-            return f"⚠️ Erro inesperado ao buscar resultados no Liquipedia: {str(e)}.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+            print(f"Erro inesperado ao buscar resultados no EGamersWorld: {str(e)}")
+            return f"⚠️ Erro inesperado ao buscar resultados no EGamersWorld: {str(e)}.\nAcompanhe atualizações em: [EGamersWorld](https://egamersworld.com/counterstrike/matches)"
 
-# Função para buscar próximos jogos do Liquipedia (fallback)
-def get_upcoming_matches_liquipedia():
+# Função para buscar próximos jogos do EGamersWorld (fallback)
+def get_upcoming_matches_egamersworld():
     for attempt in range(3):  # Tenta até 3 vezes
         try:
-            # URL da página da FURIA no Liquipedia
-            url = "https://liquipedia.net/counterstrike/FURIA_Esports"
-            print(f"Tentativa {attempt + 1}/3 de buscar próximos jogos no Liquipedia")
+            # URL da página de partidas no EGamersWorld
+            url = "https://egamersworld.com/counterstrike/matches"
+            print(f"Tentativa {attempt + 1}/3 de buscar próximos jogos no EGamersWorld")
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             }
             response = requests.get(url, headers=headers, timeout=10)
             response.raise_for_status()
-            print("Resposta recebida do Liquipedia com sucesso.")
+            print("Resposta recebida do EGamersWorld com sucesso.")
             soup = BeautifulSoup(response.text, 'html.parser')
 
             # Log do HTML para depuração
             print("HTML recebido (primeiros 500 caracteres):")
             print(str(soup)[:500])
 
-            # Encontra a seção de próximos jogos
-            upcoming_matches_section = soup.find('span', id='Upcoming_Matches')
-            if not upcoming_matches_section:
-                print("Seção 'Upcoming Matches' não encontrada no Liquipedia")
-                return "Atualmente, não há partidas futuras agendadas para a FURIA no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+            # Encontra a seção de partidas
+            match_blocks = soup.find_all('div', class_='match-block')
+            if not match_blocks:
+                print("Blocos de partidas não encontrados no EGamersWorld")
+                return "Atualmente, não há partidas futuras agendadas para a FURIA no EGamersWorld.\n\nAcompanhe atualizações em: [EGamersWorld](https://egamersworld.com/counterstrike/matches)"
 
-            # Encontra a tabela de próximos jogos
-            matches_table = upcoming_matches_section.find_parent().find_next('table', class_='wikitable wikitable-striped')
-            if not matches_table:
-                print("Tabela de próximos jogos não encontrada no Liquipedia")
-                return "Atualmente, não há partidas futuras agendadas para a FURIA no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+            matches_text = "📅 Próximos jogos da FURIA (via EGamersWorld):\n\n"
+            current_date = datetime.utcnow()
+            match_count = 0
+            for block in match_blocks:
+                if match_count >= 3:  # Limita a 3 jogos
+                    break
 
-            # Extrai as linhas da tabela (limita a 3 jogos)
-            matches = matches_table.find_all('tr')[1:4]  # Ignora o cabeçalho
-            if not matches:
-                print("Nenhuma partida futura encontrada na tabela do Liquipedia")
-                return "Atualmente, não há partidas futuras agendadas para a FURIA no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+                # Verifica se a partida envolve a FURIA
+                teams = block.find_all('div', class_='match-team')
+                if len(teams) != 2:
+                    continue
+                team1 = teams[0].text.strip().lower()
+                team2 = teams[1].text.strip().lower()
+                if "furia" not in team1 and "furia" not in team2:
+                    continue
 
-            matches_text = "📅 Próximos jogos da FURIA (via Liquipedia):\n\n"
-            for match in matches:
-                cells = match.find_all('td')
-                if len(cells) < 5:
-                    print("Linha incompleta na tabela de próximos jogos")
+                # Verifica se a partida é futura
+                status = block.find('div', class_='match-status')
+                if not status or "upcoming" not in status.text.lower():
                     continue
 
                 # Extrai a data
-                date = cells[0].text.strip()
-                if not date:
+                date_elem = block.find('div', class_='match-date')
+                date = date_elem.text.strip() if date_elem else "Data não disponível"
+                try:
+                    match_date = datetime.strptime(date, "%d.%m.%Y %H:%M")
+                    if match_date <= current_date:
+                        continue  # Pula partidas passadas
+                    date = match_date.strftime("%d/%m/%Y %H:%M")
+                except ValueError:
+                    print(f"Formato de data inválido: {date}")
                     date = "Data não disponível"
 
                 # Extrai o oponente
-                opponent = cells[1].text.strip()
+                opponent = team2 if "furia" in team1 else team1
+                opponent = opponent.capitalize()
 
                 # Extrai o evento
-                event = cells[4].text.strip()
+                event_elem = block.find('div', class_='match-event')
+                event = event_elem.text.strip() if event_elem else "Evento desconhecido"
 
                 matches_text += f"- FURIA vs {opponent} | {date} | {event}\n"
+                match_count += 1
 
-            if matches_text == "📅 Próximos jogos da FURIA (via Liquipedia):\n\n":
-                print("Nenhum jogo futuro válido foi extraído do Liquipedia")
-                return "Atualmente, não há partidas futuras agendadas para a FURIA no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+            if match_count == 0:
+                print("Nenhum jogo futuro da FURIA foi encontrado no EGamersWorld")
+                return "Atualmente, não há partidas futuras agendadas para a FURIA no EGamersWorld.\n\nAcompanhe atualizações em: [EGamersWorld](https://egamersworld.com/counterstrike/matches)"
 
             return matches_text
         except requests.exceptions.HTTPError as e:
-            print(f"Erro HTTP ao buscar próximos jogos no Liquipedia: {str(e)}")
+            print(f"Erro HTTP ao buscar próximos jogos no EGamersWorld: {str(e)}")
             if e.response.status_code == 403:
-                print("Acesso bloqueado pelo Liquipedia (403 Forbidden)")
-                return "⚠️ O Liquipedia bloqueou o acesso (403 Forbidden). Tente novamente mais tarde.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+                print("Acesso bloqueado pelo EGamersWorld (403 Forbidden)")
+                return "⚠️ O EGamersWorld bloqueou o acesso (403 Forbidden). Tente novamente mais tarde.\nAcompanhe atualizações em: [EGamersWorld](https://egamersworld.com/counterstrike/matches)"
             elif e.response.status_code == 429:
-                print("Limite de requisições excedido no Liquipedia (429 Too Many Requests)")
+                print("Limite de requisições excedido no EGamersWorld (429 Too Many Requests)")
                 if attempt < 2:  # Não espera na última tentativa
                     wait_time = (attempt + 1) * 5  # Espera 5s, 10s, 15s
                     print(f"Aguardando {wait_time} segundos antes de tentar novamente...")
                     time.sleep(wait_time)
                     continue
-                return "⚠️ Limite de requisições excedido no Liquipedia (429 Too Many Requests). Tente novamente mais tarde.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
-            return f"⚠️ Erro HTTP ao buscar próximos jogos no Liquipedia: {str(e)}.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+                return "⚠️ Limite de requisições excedido no EGamersWorld (429 Too Many Requests). Tente novamente mais tarde.\nAcompanhe atualizações em: [EGamersWorld](https://egamersworld.com/counterstrike/matches)"
+            return f"⚠️ Erro HTTP ao buscar próximos jogos no EGamersWorld: {str(e)}.\nAcompanhe atualizações em: [EGamersWorld](https://egamersworld.com/counterstrike/matches)"
         except requests.exceptions.RequestException as e:
-            print(f"Erro de requisição ao buscar próximos jogos no Liquipedia: {str(e)}")
+            print(f"Erro de requisição ao buscar próximos jogos no EGamersWorld: {str(e)}")
             if attempt < 2:  # Não espera na última tentativa
                 wait_time = (attempt + 1) * 5
                 print(f"Aguardando {wait_time} segundos antes de tentar novamente...")
                 time.sleep(wait_time)
                 continue
-            return f"⚠️ Erro de requisição ao buscar próximos jogos no Liquipedia: {str(e)}.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+            return f"⚠️ Erro de requisição ao buscar próximos jogos no EGamersWorld: {str(e)}.\nAcompanhe atualizações em: [EGamersWorld](https://egamersworld.com/counterstrike/matches)"
         except Exception as e:
-            print(f"Erro inesperado ao buscar próximos jogos no Liquipedia: {str(e)}")
-            return f"⚠️ Erro inesperado ao buscar próximos jogos no Liquipedia: {str(e)}.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+            print(f"Erro inesperado ao buscar próximos jogos no EGamersWorld: {str(e)}")
+            return f"⚠️ Erro inesperado ao buscar próximos jogos no EGamersWorld: {str(e)}.\nAcompanhe atualizações em: [EGamersWorld](https://egamersworld.com/counterstrike/matches)"
 
 # Função para buscar Últimos Resultados usando a PandaScore
 def get_recent_results():
@@ -276,8 +299,8 @@ def get_recent_results():
             matches = response.json()
 
             if not matches:
-                print("Nenhuma partida encontrada na PandaScore, usando fallback Liquipedia")
-                result = get_recent_results_liquipedia()
+                print("Nenhuma partida encontrada na PandaScore, usando fallback EGamersWorld")
+                result = get_recent_results_egamersworld()
             else:
                 results_text = "✅ Últimos resultados da FURIA:\n\n"
                 has_valid_results = False  # Flag para verificar se há resultados válidos
@@ -317,8 +340,8 @@ def get_recent_results():
                 if has_valid_results:
                     result = results_text
                 else:
-                    print("Nenhum resultado válido encontrado na PandaScore, usando fallback Liquipedia")
-                    result = get_recent_results_liquipedia()
+                    print("Nenhum resultado válido encontrado na PandaScore, usando fallback EGamersWorld")
+                    result = get_recent_results_egamersworld()
 
             # Atualiza o cache
             cache["recent_results"]["data"] = result
@@ -331,24 +354,24 @@ def get_recent_results():
                 time.sleep(wait_time)
                 continue
             print(f"Erro HTTP ao buscar resultados na PandaScore: {str(e)}")
-            result = get_recent_results_liquipedia()
+            result = get_recent_results_egamersworld()
             cache["recent_results"]["data"] = result
             cache["recent_results"]["timestamp"] = datetime.utcnow()
             return result
         except requests.exceptions.RequestException as e:
             print(f"Erro de requisição ao buscar resultados na PandaScore: {str(e)}")
-            result = get_recent_results_liquipedia()
+            result = get_recent_results_egamersworld()
             cache["recent_results"]["data"] = result
             cache["recent_results"]["timestamp"] = datetime.utcnow()
             return result
         except Exception as e:
             print(f"Erro inesperado ao buscar resultados na PandaScore: {str(e)}")
-            result = get_recent_results_liquipedia()
+            result = get_recent_results_egamersworld()
             cache["recent_results"]["data"] = result
             cache["recent_results"]["timestamp"] = datetime.utcnow()
             return result
 
-# Função para buscar Próximos Jogos usando a PandaScore, com fallback para Liquipedia
+# Função para buscar Próximos Jogos usando a PandaScore, com fallback para EGamersWorld
 def get_upcoming_matches():
     # Verifica se o cache está válido
     if is_cache_valid(cache["upcoming_matches"]):
@@ -365,8 +388,8 @@ def get_upcoming_matches():
             matches = response.json()
 
             if not matches:
-                print("Nenhuma partida futura encontrada na PandaScore, usando fallback Liquipedia")
-                result = get_upcoming_matches_liquipedia()
+                print("Nenhuma partida futura encontrada na PandaScore, usando fallback EGamersWorld")
+                result = get_upcoming_matches_egamersworld()
             else:
                 matches_text = "📅 Próximos jogos da FURIA:\n\n"
                 has_valid_matches = False  # Flag para verificar se há jogos válidos
@@ -389,8 +412,8 @@ def get_upcoming_matches():
                 if has_valid_matches:
                     result = matches_text
                 else:
-                    print("Nenhum jogo futuro válido encontrado na PandaScore, usando fallback Liquipedia")
-                    result = get_upcoming_matches_liquipedia()
+                    print("Nenhum jogo futuro válido encontrado na PandaScore, usando fallback EGamersWorld")
+                    result = get_upcoming_matches_egamersworld()
 
             # Atualiza o cache
             cache["upcoming_matches"]["data"] = result
@@ -403,19 +426,19 @@ def get_upcoming_matches():
                 time.sleep(wait_time)
                 continue
             print(f"Erro HTTP ao buscar próximos jogos na PandaScore: {str(e)}")
-            result = get_upcoming_matches_liquipedia()
+            result = get_upcoming_matches_egamersworld()
             cache["upcoming_matches"]["data"] = result
             cache["upcoming_matches"]["timestamp"] = datetime.utcnow()
             return result
         except requests.exceptions.RequestException as e:
             print(f"Erro de requisição ao buscar próximos jogos na PandaScore: {str(e)}")
-            result = get_upcoming_matches_liquipedia()
+            result = get_upcoming_matches_egamersworld()
             cache["upcoming_matches"]["data"] = result
             cache["upcoming_matches"]["timestamp"] = datetime.utcnow()
             return result
         except Exception as e:
             print(f"Erro inesperado ao buscar próximos jogos na PandaScore: {str(e)}")
-            result = get_upcoming_matches_liquipedia()
+            result = get_upcoming_matches_egamersworld()
             cache["upcoming_matches"]["data"] = result
             cache["upcoming_matches"]["timestamp"] = datetime.utcnow()
             return result
@@ -473,7 +496,7 @@ async def check_upcoming_matches():
                         f"@Notificações FURIA\n"
                         f"📅 Jogo da FURIA em breve!\n"
                         f"FURIA vs {opponent} | {date} | {event}\n"
-                        f"Acompanhe em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+                        f"Acompanhe em: [EGamersWorld](https://egamersworld.com/counterstrike/matches)"
                     )
                     await channel.send(notification_message)
                     notified_matches.append(match_id)
@@ -484,7 +507,7 @@ async def check_upcoming_matches():
 
         except Exception as e:
             print(f"Erro ao verificar próximos jogos: {str(e)}")
-            # Se houver erro na PandaScore, não tentamos Liquipedia aqui, pois get_upcoming_matches() já lida com isso
+            # Se houver erro na PandaScore, não tentamos EGamersWorld aqui, pois get_upcoming_matches() já lida com isso
         
         await asyncio.sleep(21600)  # Verifica a cada 6 horas
 
