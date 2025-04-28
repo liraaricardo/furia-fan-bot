@@ -97,8 +97,8 @@ def get_recent_results_flashscore():
             print("HTML recebido (primeiros 500 caracteres):")
             print(str(soup)[:500])
 
-            # Encontra os resultados
-            matches = soup.find_all('div', class_='event__match')[:4]  # Limita a 4 resultados
+            # Encontra os resultados (ajustando seletores para maior robustez)
+            matches = soup.find_all('div', class_=lambda x: x and 'event__match' in x)[:4]  # Limita a 4 resultados
             if not matches:
                 print("Nenhum elemento 'event__match' encontrado no Flashscore")
                 return "Não há resultados recentes disponíveis no Flashscore.\n\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
@@ -106,7 +106,7 @@ def get_recent_results_flashscore():
             results_text = "✅ Últimos resultados da FURIA (via Flashscore):\n\n"
             for match in matches:
                 # Extrai a data
-                date_div = match.find('div', class_='event__time')
+                date_div = match.find('div', class_=lambda x: x and 'event__time' in x)
                 if not date_div:
                     print("Elemento de data não encontrado em um resultado")
                     date = "Data não disponível"
@@ -114,8 +114,8 @@ def get_recent_results_flashscore():
                     date = date_div.text.strip().split(' ')[0]  # Formato: "DD.MM. HH:MM" -> "DD.MM."
 
                 # Extrai os times
-                team1_div = match.find('div', class_='event__participant--home')
-                team2_div = match.find('div', class_='event__participant--away')
+                team1_div = match.find('div', class_=lambda x: x and 'event__participant--home' in x)
+                team2_div = match.find('div', class_=lambda x: x and 'event__participant--away' in x)
                 if not team1_div or not team2_div:
                     print("Elemento de times não encontrado")
                     continue
@@ -123,7 +123,7 @@ def get_recent_results_flashscore():
                 team2 = team2_div.text.strip()
 
                 # Extrai o placar
-                score_div = match.find('div', class_='event__scores')
+                score_div = match.find('div', class_=lambda x: x and 'event__scores' in x)
                 if not score_div:
                     print("Elemento de placar não encontrado")
                     continue
@@ -157,7 +157,7 @@ def get_recent_results_flashscore():
             print(f"Erro HTTP ao buscar resultados no Flashscore: {str(e)}")
             if e.response.status_code == 403:
                 print("Acesso bloqueado pelo Flashscore (403 Forbidden)")
-                return "⚠️ O Flashscore bloqueou o acesso. Tente novamente mais tarde.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+                return "⚠️ O Flashscore bloqueou o acesso (403 Forbidden). Tente novamente mais tarde.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
             elif e.response.status_code == 429:
                 print("Limite de requisições excedido no Flashscore (429 Too Many Requests)")
                 if attempt < 2:  # Não espera na última tentativa
@@ -165,7 +165,8 @@ def get_recent_results_flashscore():
                     print(f"Aguardando {wait_time} segundos antes de tentar novamente...")
                     time.sleep(wait_time)
                     continue
-            return "⚠️ Não foi possível buscar os resultados recentes no Flashscore.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+                return "⚠️ Limite de requisições excedido no Flashscore (429 Too Many Requests). Tente novamente mais tarde.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+            return f"⚠️ Erro HTTP ao buscar resultados no Flashscore: {str(e)}.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
         except requests.exceptions.RequestException as e:
             print(f"Erro de requisição ao buscar resultados no Flashscore: {str(e)}")
             if attempt < 2:  # Não espera na última tentativa
@@ -173,10 +174,10 @@ def get_recent_results_flashscore():
                 print(f"Aguardando {wait_time} segundos antes de tentar novamente...")
                 time.sleep(wait_time)
                 continue
-            return "⚠️ Não foi possível buscar os resultados recentes no Flashscore.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+            return f"⚠️ Erro de requisição ao buscar resultados no Flashscore: {str(e)}.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
         except Exception as e:
             print(f"Erro inesperado ao buscar resultados no Flashscore: {str(e)}")
-            return "⚠️ Não foi possível buscar os resultados recentes no Flashscore.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+            return f"⚠️ Erro inesperado ao buscar resultados no Flashscore: {str(e)}.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
 
 # Função para buscar próximos jogos do Flashscore (fallback)
 def get_upcoming_matches_flashscore():
@@ -197,8 +198,8 @@ def get_upcoming_matches_flashscore():
             print("HTML recebido (primeiros 500 caracteres):")
             print(str(soup)[:500])
 
-            # Encontra os próximos jogos (elementos com classe 'event__match' e sem placar)
-            matches = soup.find_all('div', class_='event__match')[:3]  # Limita a 3 jogos
+            # Encontra os próximos jogos (ajustando seletores para maior robustez)
+            matches = soup.find_all('div', class_=lambda x: x and 'event__match' in x)[:3]  # Limita a 3 jogos
             if not matches:
                 print("Nenhum elemento 'event__match' encontrado no Flashscore")
                 return "Atualmente, não há partidas futuras agendadas para a FURIA no Flashscore.\n\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
@@ -207,12 +208,12 @@ def get_upcoming_matches_flashscore():
             has_upcoming = False
             for match in matches:
                 # Verifica se é um jogo futuro (sem placar)
-                score_div = match.find('div', class_='event__scores')
+                score_div = match.find('div', class_=lambda x: x and 'event__scores' in x)
                 if score_div and score_div.find('span'):  # Se há placar, é um jogo passado
                     continue
 
                 # Extrai a data
-                date_div = match.find('div', class_='event__time')
+                date_div = match.find('div', class_=lambda x: x and 'event__time' in x)
                 if not date_div:
                     print("Elemento de data não encontrado em um jogo futuro")
                     date = "Data não disponível"
@@ -220,8 +221,8 @@ def get_upcoming_matches_flashscore():
                     date = date_div.text.strip()  # Formato: "DD.MM. HH:MM"
 
                 # Extrai os times
-                team1_div = match.find('div', class_='event__participant--home')
-                team2_div = match.find('div', class_='event__participant--away')
+                team1_div = match.find('div', class_=lambda x: x and 'event__participant--home' in x)
+                team2_div = match.find('div', class_=lambda x: x and 'event__participant--away' in x)
                 if not team1_div or not team2_div:
                     print("Elemento de times não encontrado")
                     continue
@@ -250,7 +251,7 @@ def get_upcoming_matches_flashscore():
             print(f"Erro HTTP ao buscar próximos jogos no Flashscore: {str(e)}")
             if e.response.status_code == 403:
                 print("Acesso bloqueado pelo Flashscore (403 Forbidden)")
-                return "⚠️ O Flashscore bloqueou o acesso. Tente novamente mais tarde.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+                return "⚠️ O Flashscore bloqueou o acesso (403 Forbidden). Tente novamente mais tarde.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
             elif e.response.status_code == 429:
                 print("Limite de requisições excedido no Flashscore (429 Too Many Requests)")
                 if attempt < 2:  # Não espera na última tentativa
@@ -258,7 +259,8 @@ def get_upcoming_matches_flashscore():
                     print(f"Aguardando {wait_time} segundos antes de tentar novamente...")
                     time.sleep(wait_time)
                     continue
-            return "⚠️ Não foi possível buscar os próximos jogos no Flashscore.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+                return "⚠️ Limite de requisições excedido no Flashscore (429 Too Many Requests). Tente novamente mais tarde.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+            return f"⚠️ Erro HTTP ao buscar próximos jogos no Flashscore: {str(e)}.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
         except requests.exceptions.RequestException as e:
             print(f"Erro de requisição ao buscar próximos jogos no Flashscore: {str(e)}")
             if attempt < 2:  # Não espera na última tentativa
@@ -266,10 +268,10 @@ def get_upcoming_matches_flashscore():
                 print(f"Aguardando {wait_time} segundos antes de tentar novamente...")
                 time.sleep(wait_time)
                 continue
-            return "⚠️ Não foi possível buscar os próximos jogos no Flashscore.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+            return f"⚠️ Erro de requisição ao buscar próximos jogos no Flashscore: {str(e)}.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
         except Exception as e:
             print(f"Erro inesperado ao buscar próximos jogos no Flashscore: {str(e)}")
-            return "⚠️ Não foi possível buscar os próximos jogos no Flashscore.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+            return f"⚠️ Erro inesperado ao buscar próximos jogos no Flashscore: {str(e)}.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
 
 # Função para buscar Últimos Resultados usando a PandaScore
 def get_recent_results():
@@ -282,6 +284,7 @@ def get_recent_results():
     for attempt in range(3):
         try:
             url = f"https://api.pandascore.co/csgo/matches/past?filter[opponent_id]={FURIA_ID}&sort=-begin_at&per_page=10&token={PANDASCORE_API_KEY}"
+            print(f"Tentativa {attempt + 1}/3 de buscar resultados na PandaScore")
             response = requests.get(url)
             response.raise_for_status()
             matches = response.json()
@@ -291,11 +294,15 @@ def get_recent_results():
                 result = get_recent_results_flashscore()
             else:
                 results_text = "✅ Últimos resultados da FURIA:\n\n"
-                all_invalid = True  # Flag para verificar se todos os resultados são inválidos
+                has_valid_results = False  # Flag para verificar se há resultados válidos
                 for match in matches[:4]:  # Limita a 4 resultados
                     # Log para depuração
-                    print(f"Partida {match['id']}: begin_at={match['begin_at']}, results={match['results']}")
+                    print(f"Partida {match['id']}: begin_at={match['begin_at']}, results={match.get('results', 'N/A')}")
                     
+                    # Verifica se há oponentes válidos
+                    if len(match.get('opponents', [])) < 2:
+                        print(f"Partida {match['id']} não tem oponentes suficientes")
+                        continue
                     opponent = match['opponents'][1]['opponent']['name'] if match['opponents'][0]['opponent']['id'] == FURIA_ID else match['opponents'][0]['opponent']['name']
                     event = match['league']['name']
                     
@@ -304,7 +311,7 @@ def get_recent_results():
                         date = "Data não disponível"
                     else:
                         date = datetime.strptime(match['begin_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y")
-                        all_invalid = False  # Pelo menos uma partida tem data válida
+                        has_valid_results = True
                     
                     # Verifica o placar com mais cuidado
                     if match.get('results') and len(match['results']) == 2 and all('score' in team for team in match['results']):
@@ -314,18 +321,18 @@ def get_recent_results():
                             score = "N/A"
                         else:
                             score = f"{score1} : {score2}"
-                            all_invalid = False  # Pelo menos uma partida tem placar válido
+                            has_valid_results = True
                     else:
                         score = "N/A"
                     
                     results_text += f"- {date}: FURIA {score} {opponent} | {event}\n"
                 
-                # Se todos os resultados forem inválidos (sem data e sem placar), usa o fallback
-                if all_invalid:
-                    print("Todos os resultados da PandaScore são inválidos, usando fallback Flashscore")
-                    result = get_recent_results_flashscore()
-                else:
+                # Se houver pelo menos um resultado válido, usamos os dados da PandaScore
+                if has_valid_results:
                     result = results_text
+                else:
+                    print("Nenhum resultado válido encontrado na PandaScore, usando fallback Flashscore")
+                    result = get_recent_results_flashscore()
 
             # Atualiza o cache
             cache["recent_results"]["data"] = result
@@ -334,16 +341,22 @@ def get_recent_results():
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 429:  # Too Many Requests
                 wait_time = (attempt + 1) * 10  # Espera: 10s, 20s, 30s
-                print(f"Limite de requisições excedido. Tentativa {attempt + 1}/3. Aguardando {wait_time} segundos...")
+                print(f"Limite de requisições excedido na PandaScore. Tentativa {attempt + 1}/3. Aguardando {wait_time} segundos...")
                 time.sleep(wait_time)
                 continue
-            print(f"Erro ao buscar resultados recentes na PandaScore, usando fallback Flashscore: {str(e)}")
+            print(f"Erro HTTP ao buscar resultados na PandaScore: {str(e)}")
+            result = get_recent_results_flashscore()
+            cache["recent_results"]["data"] = result
+            cache["recent_results"]["timestamp"] = datetime.utcnow()
+            return result
+        except requests.exceptions.RequestException as e:
+            print(f"Erro de requisição ao buscar resultados na PandaScore: {str(e)}")
             result = get_recent_results_flashscore()
             cache["recent_results"]["data"] = result
             cache["recent_results"]["timestamp"] = datetime.utcnow()
             return result
         except Exception as e:
-            print(f"Erro ao buscar resultados recentes na PandaScore, usando fallback Flashscore: {str(e)}")
+            print(f"Erro inesperado ao buscar resultados na PandaScore: {str(e)}")
             result = get_recent_results_flashscore()
             cache["recent_results"]["data"] = result
             cache["recent_results"]["timestamp"] = datetime.utcnow()
@@ -360,6 +373,7 @@ def get_upcoming_matches():
     for attempt in range(3):
         try:
             url = f"https://api.pandascore.co/csgo/matches/upcoming?filter[opponent_id]={FURIA_ID}&sort=begin_at&per_page=10&token={PANDASCORE_API_KEY}"
+            print(f"Tentativa {attempt + 1}/3 de buscar próximos jogos na PandaScore")
             response = requests.get(url)
             response.raise_for_status()
             matches = response.json()
@@ -369,24 +383,28 @@ def get_upcoming_matches():
                 result = get_upcoming_matches_flashscore()
             else:
                 matches_text = "📅 Próximos jogos da FURIA:\n\n"
-                all_invalid = True  # Flag para verificar se todos os jogos são inválidos
+                has_valid_matches = False  # Flag para verificar se há jogos válidos
                 for match in matches[:3]:  # Limita a 3 partidas
+                    # Verifica se há oponentes válidos
+                    if len(match.get('opponents', [])) < 2:
+                        print(f"Partida {match['id']} não tem oponentes suficientes")
+                        continue
                     opponent = match['opponents'][1]['opponent']['name'] if match['opponents'][0]['opponent']['id'] == FURIA_ID else match['opponents'][0]['opponent']['name']
                     # Verifica se begin_at é None
                     if match['begin_at'] is None:
                         date = "Data não disponível"
                     else:
                         date = datetime.strptime(match['begin_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y %H:%M UTC")
-                        all_invalid = False  # Pelo menos um jogo tem data válida
+                        has_valid_matches = True
                     event = match['league']['name']
                     matches_text += f"- FURIA vs {opponent} | {date} | {event}\n"
                 
-                # Se todos os jogos forem inválidos (sem data), usa o fallback
-                if all_invalid:
-                    print("Todos os jogos futuros da PandaScore são inválidos, usando fallback Flashscore")
-                    result = get_upcoming_matches_flashscore()
-                else:
+                # Se houver pelo menos um jogo válido, usamos os dados da PandaScore
+                if has_valid_matches:
                     result = matches_text
+                else:
+                    print("Nenhum jogo futuro válido encontrado na PandaScore, usando fallback Flashscore")
+                    result = get_upcoming_matches_flashscore()
 
             # Atualiza o cache
             cache["upcoming_matches"]["data"] = result
@@ -395,16 +413,22 @@ def get_upcoming_matches():
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 429:  # Too Many Requests
                 wait_time = (attempt + 1) * 10  # Espera: 10s, 20s, 30s
-                print(f"Limite de requisições excedido. Tentativa {attempt + 1}/3. Aguardando {wait_time} segundos...")
+                print(f"Limite de requisições excedido na PandaScore. Tentativa {attempt + 1}/3. Aguardando {wait_time} segundos...")
                 time.sleep(wait_time)
                 continue
-            print(f"Erro ao buscar próximos jogos na PandaScore, usando fallback Flashscore: {str(e)}")
+            print(f"Erro HTTP ao buscar próximos jogos na PandaScore: {str(e)}")
+            result = get_upcoming_matches_flashscore()
+            cache["upcoming_matches"]["data"] = result
+            cache["upcoming_matches"]["timestamp"] = datetime.utcnow()
+            return result
+        except requests.exceptions.RequestException as e:
+            print(f"Erro de requisição ao buscar próximos jogos na PandaScore: {str(e)}")
             result = get_upcoming_matches_flashscore()
             cache["upcoming_matches"]["data"] = result
             cache["upcoming_matches"]["timestamp"] = datetime.utcnow()
             return result
         except Exception as e:
-            print(f"Erro ao buscar próximos jogos na PandaScore, usando fallback Flashscore: {str(e)}")
+            print(f"Erro inesperado ao buscar próximos jogos na PandaScore: {str(e)}")
             result = get_upcoming_matches_flashscore()
             cache["upcoming_matches"]["data"] = result
             cache["upcoming_matches"]["timestamp"] = datetime.utcnow()
