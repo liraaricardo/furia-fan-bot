@@ -81,7 +81,7 @@ async def on_interaction(interaction: discord.Interaction):
                     "🎯 **KSCERATO**: Rifler técnico e referência de consistência.\n"
                     "   [Twitch](https://www.twitch.tv/kscerato) | [Twitter](https://twitter.com/kscerato)\n\n"
                     "🔥 **yuurih**: Rifler versátil e extremamente confiável.\n"
-                    "   [Twitch](https://www.twitch.tv/yuurih) | [Twitter](https://twitter.com/yuurihfps)\n\n"
+                    "   [Twitch](https://www.twitch.tv/yuurih) | [Twitter](https://x.com/yuurih)\n\n"
                     "🎓 **FalleN**: Lenda brasileira, agora rifler e IGL da equipe.\n"
                     "   [Twitch](https://www.twitch.tv/fallen) | [Twitter](https://twitter.com/FalleNCS)\n\n"
                     "🧊 **molodoy**: AWPer do Cazaquistão, jovem promessa no cenário internacional.\n"
