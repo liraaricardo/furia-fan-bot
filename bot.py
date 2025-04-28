@@ -8,6 +8,7 @@ import asyncio
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import time
+from bs4 import BeautifulSoup
 
 # Configura os intents
 intents = discord.Intents.default()
@@ -54,6 +55,131 @@ def validate_api_token():
     except Exception as e:
         print(f"Falha ao validar o token da API da PandaScore: {str(e)}")
         return False
+
+# Função para buscar resultados recentes do HLTV.org (fallback)
+def get_recent_results_hltv():
+    try:
+        # URL da página de resultados da FURIA no HLTV.org
+        url = "https://www.hltv.org/results?team=8297"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Encontra a seção de resultados
+        results = soup.find_all('div', class_='result-con')[:4]  # Limita a 4 resultados
+        if not results:
+            return "Não há resultados recentes disponíveis no HLTV.org.\n\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
+
+        results_text = "✅ Últimos resultados da FURIA (via HLTV.org):\n\n"
+        for result in results:
+            # Extrai a data
+            date_span = result.find('span', class_='match-date')
+            date = date_span.text.strip() if date_span else "Data não disponível"
+
+            # Extrai os times e placar
+            teams = result.find_all('td', class_='team-cell')
+            team1 = teams[0].find('div', class_='team').text.strip()
+            team2 = teams[1].find('div', class_='team').text.strip()
+            score = result.find('td', class_='result-score').text.strip()
+
+            # Determina o oponente e ajusta o placar
+            if team1.lower() == "furia":
+                opponent = team2
+                score_display = score  # Ex.: "16 - 10"
+            else:
+                opponent = team1
+                score_display = f"{score.split(' - ')[1]} - {score.split(' - ')[0]}"  # Inverte o placar
+
+            # Extrai o evento
+            event = result.find('span', class_='event-name').text.strip()
+
+            results_text += f"- {date}: FURIA {score_display} {opponent} | {event}\n"
+
+        return results_text
+    except Exception as e:
+        print(f"Erro ao buscar resultados no HLTV.org: {str(e)}")
+        return "⚠️ Não foi possível buscar os resultados recentes no HLTV.org.\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
+
+# Função para buscar Últimos Resultados usando a PandaScore
+def get_recent_results():
+    # Verifica se o cache está válido
+    if is_cache_valid(cache["recent_results"]):
+        print("Usando cache para resultados recentes")
+        return cache["recent_results"]["data"]
+
+    # Tenta a requisição com reintentativas para erro 429
+    for attempt in range(3):
+        try:
+            url = f"https://api.pandascore.co/csgo/matches/past?filter[opponent_id]={FURIA_ID}&sort=-begin_at&per_page=10&token={PANDASCORE_API_KEY}"
+            response = requests.get(url)
+            response.raise_for_status()
+            matches = response.json()
+
+            if not matches:
+                print("Nenhuma partida encontrada na PandaScore, usando fallback HLTV.org")
+                result = get_recent_results_hltv()
+            else:
+                results_text = "✅ Últimos resultados da FURIA:\n\n"
+                all_invalid = True  # Flag para verificar se todos os resultados são inválidos
+                for match in matches[:4]:  # Limita a 4 resultados
+                    # Log para depuração
+                    print(f"Partida {match['id']}: begin_at={match['begin_at']}, results={match['results']}")
+                    
+                    opponent = match['opponents'][1]['opponent']['name'] if match['opponents'][0]['opponent']['id'] == FURIA_ID else match['opponents'][0]['opponent']['name']
+                    event = match['league']['name']
+                    
+                    # Verifica se begin_at é None
+                    if match['begin_at'] is None:
+                        date = "Data não disponível"
+                    else:
+                        date = datetime.strptime(match['begin_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y")
+                        all_invalid = False  # Pelo menos uma partida tem data válida
+                    
+                    # Verifica o placar com mais cuidado
+                    if match.get('results') and len(match['results']) == 2 and all('score' in team for team in match['results']):
+                        score1 = match['results'][0]['score'] if match['results'][0]['score'] is not None else 0
+                        score2 = match['results'][1]['score'] if match['results'][1]['score'] is not None else 0
+                        if score1 == 0 and score2 == 0:
+                            score = "N/A"
+                        else:
+                            score = f"{score1} : {score2}"
+                            all_invalid = False  # Pelo menos uma partida tem placar válido
+                    else:
+                        score = "N/A"
+                    
+                    results_text += f"- {date}: FURIA {score} {opponent} | {event}\n"
+                
+                # Se todos os resultados forem inválidos (sem data e sem placar), usa o fallback
+                if all_invalid:
+                    print("Todos os resultados da PandaScore são inválidos, usando fallback HLTV.org")
+                    result = get_recent_results_hltv()
+                else:
+                    result = results_text
+
+            # Atualiza o cache
+            cache["recent_results"]["data"] = result
+            cache["recent_results"]["timestamp"] = datetime.utcnow()
+            return result
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 429:  # Too Many Requests
+                wait_time = (attempt + 1) * 10  # Espera: 10s, 20s, 30s
+                print(f"Limite de requisições excedido. Tentativa {attempt + 1}/3. Aguardando {wait_time} segundos...")
+                time.sleep(wait_time)
+                continue
+            print(f"Erro ao buscar resultados recentes na PandaScore, usando fallback HLTV.org: {str(e)}")
+            result = get_recent_results_hltv()
+            cache["recent_results"]["data"] = result
+            cache["recent_results"]["timestamp"] = datetime.utcnow()
+            return result
+        except Exception as e:
+            print(f"Erro ao buscar resultados recentes na PandaScore, usando fallback HLTV.org: {str(e)}")
+            result = get_recent_results_hltv()
+            cache["recent_results"]["data"] = result
+            cache["recent_results"]["timestamp"] = datetime.utcnow()
+            return result
 
 # Função para buscar Próximos Jogos usando a PandaScore
 def get_upcoming_matches():
@@ -102,55 +228,6 @@ def get_upcoming_matches():
         except Exception as e:
             print(f"Erro ao buscar próximos jogos: {str(e)}")
             return f"⚠️ Não foi possível buscar os próximos jogos no momento: {str(e)}.\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
-
-# Função para buscar Últimos Resultados usando a PandaScore
-def get_recent_results():
-    # Verifica se o cache está válido
-    if is_cache_valid(cache["recent_results"]):
-        print("Usando cache para resultados recentes")
-        return cache["recent_results"]["data"]
-
-    # Tenta a requisição com reintentativas para erro 429
-    for attempt in range(3):
-        try:
-            url = f"https://api.pandascore.co/csgo/matches/past?filter[opponent_id]={FURIA_ID}&sort=-begin_at&per_page=10&token={PANDASCORE_API_KEY}"
-            response = requests.get(url)
-            response.raise_for_status()
-            matches = response.json()
-
-            if not matches:
-                result = "Não há resultados recentes disponíveis.\n\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
-            else:
-                results_text = "✅ Últimos resultados da FURIA:\n\n"
-                for match in matches[:4]:  # Limita a 4 resultados
-                    opponent = match['opponents'][1]['opponent']['name'] if match['opponents'][0]['opponent']['id'] == FURIA_ID else match['opponents'][0]['opponent']['name']
-                    score = f"{match['results'][0]['score']} : {match['results'][1]['score']}" if match['results'] else "N/A"
-                    event = match['league']['name']
-                    # Verifica se begin_at é None
-                    if match['begin_at'] is None:
-                        date = "Data não disponível"
-                    else:
-                        date = datetime.strptime(match['begin_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y")
-                    results_text += f"- {date}: FURIA {score} {opponent} | {event}\n"
-                result = results_text
-
-            # Atualiza o cache
-            cache["recent_results"]["data"] = result
-            cache["recent_results"]["timestamp"] = datetime.utcnow()
-            return result
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 429:  # Too Many Requests
-                wait_time = (attempt + 1) * 10  # Espera: 10s, 20s, 30s
-                print(f"Limite de requisições excedido. Tentativa {attempt + 1}/3. Aguardando {wait_time} segundos...")
-                time.sleep(wait_time)
-                continue
-            print(f"Erro ao buscar resultados recentes: {str(e)}")
-            if e.response.status_code == 403:
-                return f"⚠️ Erro de autenticação na API. O token pode estar inválido.\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
-            return f"⚠️ Não foi possível buscar os resultados recentes no momento: {str(e)}.\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
-        except Exception as e:
-            print(f"Erro ao buscar resultados recentes: {str(e)}")
-            return f"⚠️ Não foi possível buscar os resultados recentes no momento: {str(e)}.\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
 
 # Função para verificar e notificar sobre próximos jogos
 async def check_upcoming_matches():
