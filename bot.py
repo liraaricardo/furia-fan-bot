@@ -78,200 +78,186 @@ def validate_api_token():
         print(f"Falha ao validar o token da API da PandaScore: {str(e)}")
         return False
 
-# Função para buscar resultados recentes do Flashscore (fallback)
-def get_recent_results_flashscore():
+# Função para buscar resultados recentes do Liquipedia (fallback)
+def get_recent_results_liquipedia():
     for attempt in range(3):  # Tenta até 3 vezes
         try:
-            # URL da página de resultados da FURIA no Flashscore
-            url = "https://www.flashscore.com/team/furia/6z2eC9tF/results/"
-            print(f"Tentativa {attempt + 1}/3 de buscar resultados no Flashscore")
+            # URL da página da FURIA no Liquipedia
+            url = "https://liquipedia.net/counterstrike/FURIA_Esports"
+            print(f"Tentativa {attempt + 1}/3 de buscar resultados no Liquipedia")
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             }
             response = requests.get(url, headers=headers, timeout=10)
             response.raise_for_status()
-            print("Resposta recebida do Flashscore com sucesso.")
+            print("Resposta recebida do Liquipedia com sucesso.")
             soup = BeautifulSoup(response.text, 'html.parser')
 
             # Log do HTML para depuração
             print("HTML recebido (primeiros 500 caracteres):")
             print(str(soup)[:500])
 
-            # Encontra os resultados (ajustando seletores para maior robustez)
-            matches = soup.find_all('div', class_=lambda x: x and 'event__match' in x)[:4]  # Limita a 4 resultados
+            # Encontra a seção de resultados recentes
+            recent_matches_section = soup.find('span', id='Recent_Matches')
+            if not recent_matches_section:
+                print("Seção 'Recent Matches' não encontrada no Liquipedia")
+                return "Não há resultados recentes disponíveis no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+
+            # Encontra a tabela de resultados recentes
+            matches_table = recent_matches_section.find_parent().find_next('table', class_='wikitable wikitable-striped')
+            if not matches_table:
+                print("Tabela de resultados recentes não encontrada no Liquipedia")
+                return "Não há resultados recentes disponíveis no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+
+            # Extrai as linhas da tabela (limita a 4 resultados)
+            matches = matches_table.find_all('tr')[1:5]  # Ignora o cabeçalho
             if not matches:
-                print("Nenhum elemento 'event__match' encontrado no Flashscore")
-                return "Não há resultados recentes disponíveis no Flashscore.\n\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+                print("Nenhuma partida recente encontrada na tabela do Liquipedia")
+                return "Não há resultados recentes disponíveis no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
 
-            results_text = "✅ Últimos resultados da FURIA (via Flashscore):\n\n"
+            results_text = "✅ Últimos resultados da FURIA (via Liquipedia):\n\n"
             for match in matches:
-                # Extrai a data
-                date_div = match.find('div', class_=lambda x: x and 'event__time' in x)
-                if not date_div:
-                    print("Elemento de data não encontrado em um resultado")
-                    date = "Data não disponível"
-                else:
-                    date = date_div.text.strip().split(' ')[0]  # Formato: "DD.MM. HH:MM" -> "DD.MM."
-
-                # Extrai os times
-                team1_div = match.find('div', class_=lambda x: x and 'event__participant--home' in x)
-                team2_div = match.find('div', class_=lambda x: x and 'event__participant--away' in x)
-                if not team1_div or not team2_div:
-                    print("Elemento de times não encontrado")
+                cells = match.find_all('td')
+                if len(cells) < 5:
+                    print("Linha incompleta na tabela de resultados recentes")
                     continue
-                team1 = team1_div.text.strip()
-                team2 = team2_div.text.strip()
+
+                # Extrai a data
+                date = cells[0].text.strip()
+                if not date:
+                    date = "Data não disponível"
+
+                # Extrai o oponente
+                opponent = cells[1].text.strip()
 
                 # Extrai o placar
-                score_div = match.find('div', class_=lambda x: x and 'event__scores' in x)
-                if not score_div:
-                    print("Elemento de placar não encontrado")
-                    continue
-                scores = score_div.find_all('span')
-                if len(scores) < 2:
-                    print("Placar incompleto encontrado")
-                    continue
-                score1 = scores[0].text.strip()
-                score2 = scores[1].text.strip()
-                score = f"{score1} - {score2}"
+                score = cells[2].text.strip().replace(':', ' - ')
+                if not score or 'TBD' in score:
+                    score = "N/A"
 
-                # Determina o oponente e ajusta o placar
-                if team1.lower() == "furia":
-                    opponent = team2
-                    score_display = score
-                else:
-                    opponent = team1
-                    score_display = f"{score2} - {score1}"  # Inverte o placar
+                # Extrai o evento
+                event = cells[4].text.strip()
 
-                # O Flashscore não fornece o nome do evento diretamente na página de resultados
-                event = "Evento não disponível"
+                results_text += f"- {date}: FURIA {score} {opponent} | {event}\n"
 
-                results_text += f"- {date}: FURIA {score_display} {opponent} | {event}\n"
-
-            if results_text == "✅ Últimos resultados da FURIA (via Flashscore):\n\n":
-                print("Nenhum resultado válido foi extraído do Flashscore")
-                return "Não há resultados recentes disponíveis no Flashscore.\n\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+            if results_text == "✅ Últimos resultados da FURIA (via Liquipedia):\n\n":
+                print("Nenhum resultado válido foi extraído do Liquipedia")
+                return "Não há resultados recentes disponíveis no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
 
             return results_text
         except requests.exceptions.HTTPError as e:
-            print(f"Erro HTTP ao buscar resultados no Flashscore: {str(e)}")
+            print(f"Erro HTTP ao buscar resultados no Liquipedia: {str(e)}")
             if e.response.status_code == 403:
-                print("Acesso bloqueado pelo Flashscore (403 Forbidden)")
-                return "⚠️ O Flashscore bloqueou o acesso (403 Forbidden). Tente novamente mais tarde.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+                print("Acesso bloqueado pelo Liquipedia (403 Forbidden)")
+                return "⚠️ O Liquipedia bloqueou o acesso (403 Forbidden). Tente novamente mais tarde.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
             elif e.response.status_code == 429:
-                print("Limite de requisições excedido no Flashscore (429 Too Many Requests)")
+                print("Limite de requisições excedido no Liquipedia (429 Too Many Requests)")
                 if attempt < 2:  # Não espera na última tentativa
                     wait_time = (attempt + 1) * 5  # Espera 5s, 10s, 15s
                     print(f"Aguardando {wait_time} segundos antes de tentar novamente...")
                     time.sleep(wait_time)
                     continue
-                return "⚠️ Limite de requisições excedido no Flashscore (429 Too Many Requests). Tente novamente mais tarde.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
-            return f"⚠️ Erro HTTP ao buscar resultados no Flashscore: {str(e)}.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+                return "⚠️ Limite de requisições excedido no Liquipedia (429 Too Many Requests). Tente novamente mais tarde.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+            return f"⚠️ Erro HTTP ao buscar resultados no Liquipedia: {str(e)}.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
         except requests.exceptions.RequestException as e:
-            print(f"Erro de requisição ao buscar resultados no Flashscore: {str(e)}")
+            print(f"Erro de requisição ao buscar resultados no Liquipedia: {str(e)}")
             if attempt < 2:  # Não espera na última tentativa
                 wait_time = (attempt + 1) * 5
                 print(f"Aguardando {wait_time} segundos antes de tentar novamente...")
                 time.sleep(wait_time)
                 continue
-            return f"⚠️ Erro de requisição ao buscar resultados no Flashscore: {str(e)}.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+            return f"⚠️ Erro de requisição ao buscar resultados no Liquipedia: {str(e)}.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
         except Exception as e:
-            print(f"Erro inesperado ao buscar resultados no Flashscore: {str(e)}")
-            return f"⚠️ Erro inesperado ao buscar resultados no Flashscore: {str(e)}.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+            print(f"Erro inesperado ao buscar resultados no Liquipedia: {str(e)}")
+            return f"⚠️ Erro inesperado ao buscar resultados no Liquipedia: {str(e)}.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
 
-# Função para buscar próximos jogos do Flashscore (fallback)
-def get_upcoming_matches_flashscore():
+# Função para buscar próximos jogos do Liquipedia (fallback)
+def get_upcoming_matches_liquipedia():
     for attempt in range(3):  # Tenta até 3 vezes
         try:
-            # URL da página de resultados da FURIA no Flashscore (também contém jogos futuros)
-            url = "https://www.flashscore.com/team/furia/6z2eC9tF/results/"
-            print(f"Tentativa {attempt + 1}/3 de buscar próximos jogos no Flashscore")
+            # URL da página da FURIA no Liquipedia
+            url = "https://liquipedia.net/counterstrike/FURIA_Esports"
+            print(f"Tentativa {attempt + 1}/3 de buscar próximos jogos no Liquipedia")
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             }
             response = requests.get(url, headers=headers, timeout=10)
             response.raise_for_status()
-            print("Resposta recebida do Flashscore com sucesso.")
+            print("Resposta recebida do Liquipedia com sucesso.")
             soup = BeautifulSoup(response.text, 'html.parser')
 
             # Log do HTML para depuração
             print("HTML recebido (primeiros 500 caracteres):")
             print(str(soup)[:500])
 
-            # Encontra os próximos jogos (ajustando seletores para maior robustez)
-            matches = soup.find_all('div', class_=lambda x: x and 'event__match' in x)[:3]  # Limita a 3 jogos
-            if not matches:
-                print("Nenhum elemento 'event__match' encontrado no Flashscore")
-                return "Atualmente, não há partidas futuras agendadas para a FURIA no Flashscore.\n\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+            # Encontra a seção de próximos jogos
+            upcoming_matches_section = soup.find('span', id='Upcoming_Matches')
+            if not upcoming_matches_section:
+                print("Seção 'Upcoming Matches' não encontrada no Liquipedia")
+                return "Atualmente, não há partidas futuras agendadas para a FURIA no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
 
-            matches_text = "📅 Próximos jogos da FURIA (via Flashscore):\n\n"
-            has_upcoming = False
+            # Encontra a tabela de próximos jogos
+            matches_table = upcoming_matches_section.find_parent().find_next('table', class_='wikitable wikitable-striped')
+            if not matches_table:
+                print("Tabela de próximos jogos não encontrada no Liquipedia")
+                return "Atualmente, não há partidas futuras agendadas para a FURIA no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+
+            # Extrai as linhas da tabela (limita a 3 jogos)
+            matches = matches_table.find_all('tr')[1:4]  # Ignora o cabeçalho
+            if not matches:
+                print("Nenhuma partida futura encontrada na tabela do Liquipedia")
+                return "Atualmente, não há partidas futuras agendadas para a FURIA no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+
+            matches_text = "📅 Próximos jogos da FURIA (via Liquipedia):\n\n"
             for match in matches:
-                # Verifica se é um jogo futuro (sem placar)
-                score_div = match.find('div', class_=lambda x: x and 'event__scores' in x)
-                if score_div and score_div.find('span'):  # Se há placar, é um jogo passado
+                cells = match.find_all('td')
+                if len(cells) < 5:
+                    print("Linha incompleta na tabela de próximos jogos")
                     continue
 
                 # Extrai a data
-                date_div = match.find('div', class_=lambda x: x and 'event__time' in x)
-                if not date_div:
-                    print("Elemento de data não encontrado em um jogo futuro")
+                date = cells[0].text.strip()
+                if not date:
                     date = "Data não disponível"
-                else:
-                    date = date_div.text.strip()  # Formato: "DD.MM. HH:MM"
 
-                # Extrai os times
-                team1_div = match.find('div', class_=lambda x: x and 'event__participant--home' in x)
-                team2_div = match.find('div', class_=lambda x: x and 'event__participant--away' in x)
-                if not team1_div or not team2_div:
-                    print("Elemento de times não encontrado")
-                    continue
-                team1 = team1_div.text.strip()
-                team2 = team2_div.text.strip()
+                # Extrai o oponente
+                opponent = cells[1].text.strip()
 
-                # Determina o oponente
-                if team1.lower() == "furia":
-                    opponent = team2
-                else:
-                    opponent = team1
-
-                # O Flashscore não fornece o nome do evento diretamente na página de resultados
-                event = "Evento não disponível"
+                # Extrai o evento
+                event = cells[4].text.strip()
 
                 matches_text += f"- FURIA vs {opponent} | {date} | {event}\n"
-                has_upcoming = True
 
-            if has_upcoming:
-                return matches_text
-            else:
-                print("Nenhum jogo futuro válido foi extraído do Flashscore")
-                return "Atualmente, não há partidas futuras agendadas para a FURIA no Flashscore.\n\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+            if matches_text == "📅 Próximos jogos da FURIA (via Liquipedia):\n\n":
+                print("Nenhum jogo futuro válido foi extraído do Liquipedia")
+                return "Atualmente, não há partidas futuras agendadas para a FURIA no Liquipedia.\n\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
 
+            return matches_text
         except requests.exceptions.HTTPError as e:
-            print(f"Erro HTTP ao buscar próximos jogos no Flashscore: {str(e)}")
+            print(f"Erro HTTP ao buscar próximos jogos no Liquipedia: {str(e)}")
             if e.response.status_code == 403:
-                print("Acesso bloqueado pelo Flashscore (403 Forbidden)")
-                return "⚠️ O Flashscore bloqueou o acesso (403 Forbidden). Tente novamente mais tarde.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+                print("Acesso bloqueado pelo Liquipedia (403 Forbidden)")
+                return "⚠️ O Liquipedia bloqueou o acesso (403 Forbidden). Tente novamente mais tarde.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
             elif e.response.status_code == 429:
-                print("Limite de requisições excedido no Flashscore (429 Too Many Requests)")
+                print("Limite de requisições excedido no Liquipedia (429 Too Many Requests)")
                 if attempt < 2:  # Não espera na última tentativa
                     wait_time = (attempt + 1) * 5  # Espera 5s, 10s, 15s
                     print(f"Aguardando {wait_time} segundos antes de tentar novamente...")
                     time.sleep(wait_time)
                     continue
-                return "⚠️ Limite de requisições excedido no Flashscore (429 Too Many Requests). Tente novamente mais tarde.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
-            return f"⚠️ Erro HTTP ao buscar próximos jogos no Flashscore: {str(e)}.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+                return "⚠️ Limite de requisições excedido no Liquipedia (429 Too Many Requests). Tente novamente mais tarde.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
+            return f"⚠️ Erro HTTP ao buscar próximos jogos no Liquipedia: {str(e)}.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
         except requests.exceptions.RequestException as e:
-            print(f"Erro de requisição ao buscar próximos jogos no Flashscore: {str(e)}")
+            print(f"Erro de requisição ao buscar próximos jogos no Liquipedia: {str(e)}")
             if attempt < 2:  # Não espera na última tentativa
                 wait_time = (attempt + 1) * 5
                 print(f"Aguardando {wait_time} segundos antes de tentar novamente...")
                 time.sleep(wait_time)
                 continue
-            return f"⚠️ Erro de requisição ao buscar próximos jogos no Flashscore: {str(e)}.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+            return f"⚠️ Erro de requisição ao buscar próximos jogos no Liquipedia: {str(e)}.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
         except Exception as e:
-            print(f"Erro inesperado ao buscar próximos jogos no Flashscore: {str(e)}")
-            return f"⚠️ Erro inesperado ao buscar próximos jogos no Flashscore: {str(e)}.\nAcompanhe atualizações em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+            print(f"Erro inesperado ao buscar próximos jogos no Liquipedia: {str(e)}")
+            return f"⚠️ Erro inesperado ao buscar próximos jogos no Liquipedia: {str(e)}.\nAcompanhe atualizações em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
 
 # Função para buscar Últimos Resultados usando a PandaScore
 def get_recent_results():
@@ -290,8 +276,8 @@ def get_recent_results():
             matches = response.json()
 
             if not matches:
-                print("Nenhuma partida encontrada na PandaScore, usando fallback Flashscore")
-                result = get_recent_results_flashscore()
+                print("Nenhuma partida encontrada na PandaScore, usando fallback Liquipedia")
+                result = get_recent_results_liquipedia()
             else:
                 results_text = "✅ Últimos resultados da FURIA:\n\n"
                 has_valid_results = False  # Flag para verificar se há resultados válidos
@@ -331,8 +317,8 @@ def get_recent_results():
                 if has_valid_results:
                     result = results_text
                 else:
-                    print("Nenhum resultado válido encontrado na PandaScore, usando fallback Flashscore")
-                    result = get_recent_results_flashscore()
+                    print("Nenhum resultado válido encontrado na PandaScore, usando fallback Liquipedia")
+                    result = get_recent_results_liquipedia()
 
             # Atualiza o cache
             cache["recent_results"]["data"] = result
@@ -345,24 +331,24 @@ def get_recent_results():
                 time.sleep(wait_time)
                 continue
             print(f"Erro HTTP ao buscar resultados na PandaScore: {str(e)}")
-            result = get_recent_results_flashscore()
+            result = get_recent_results_liquipedia()
             cache["recent_results"]["data"] = result
             cache["recent_results"]["timestamp"] = datetime.utcnow()
             return result
         except requests.exceptions.RequestException as e:
             print(f"Erro de requisição ao buscar resultados na PandaScore: {str(e)}")
-            result = get_recent_results_flashscore()
+            result = get_recent_results_liquipedia()
             cache["recent_results"]["data"] = result
             cache["recent_results"]["timestamp"] = datetime.utcnow()
             return result
         except Exception as e:
             print(f"Erro inesperado ao buscar resultados na PandaScore: {str(e)}")
-            result = get_recent_results_flashscore()
+            result = get_recent_results_liquipedia()
             cache["recent_results"]["data"] = result
             cache["recent_results"]["timestamp"] = datetime.utcnow()
             return result
 
-# Função para buscar Próximos Jogos usando a PandaScore, com fallback para Flashscore
+# Função para buscar Próximos Jogos usando a PandaScore, com fallback para Liquipedia
 def get_upcoming_matches():
     # Verifica se o cache está válido
     if is_cache_valid(cache["upcoming_matches"]):
@@ -379,8 +365,8 @@ def get_upcoming_matches():
             matches = response.json()
 
             if not matches:
-                print("Nenhuma partida futura encontrada na PandaScore, usando fallback Flashscore")
-                result = get_upcoming_matches_flashscore()
+                print("Nenhuma partida futura encontrada na PandaScore, usando fallback Liquipedia")
+                result = get_upcoming_matches_liquipedia()
             else:
                 matches_text = "📅 Próximos jogos da FURIA:\n\n"
                 has_valid_matches = False  # Flag para verificar se há jogos válidos
@@ -403,8 +389,8 @@ def get_upcoming_matches():
                 if has_valid_matches:
                     result = matches_text
                 else:
-                    print("Nenhum jogo futuro válido encontrado na PandaScore, usando fallback Flashscore")
-                    result = get_upcoming_matches_flashscore()
+                    print("Nenhum jogo futuro válido encontrado na PandaScore, usando fallback Liquipedia")
+                    result = get_upcoming_matches_liquipedia()
 
             # Atualiza o cache
             cache["upcoming_matches"]["data"] = result
@@ -417,19 +403,19 @@ def get_upcoming_matches():
                 time.sleep(wait_time)
                 continue
             print(f"Erro HTTP ao buscar próximos jogos na PandaScore: {str(e)}")
-            result = get_upcoming_matches_flashscore()
+            result = get_upcoming_matches_liquipedia()
             cache["upcoming_matches"]["data"] = result
             cache["upcoming_matches"]["timestamp"] = datetime.utcnow()
             return result
         except requests.exceptions.RequestException as e:
             print(f"Erro de requisição ao buscar próximos jogos na PandaScore: {str(e)}")
-            result = get_upcoming_matches_flashscore()
+            result = get_upcoming_matches_liquipedia()
             cache["upcoming_matches"]["data"] = result
             cache["upcoming_matches"]["timestamp"] = datetime.utcnow()
             return result
         except Exception as e:
             print(f"Erro inesperado ao buscar próximos jogos na PandaScore: {str(e)}")
-            result = get_upcoming_matches_flashscore()
+            result = get_upcoming_matches_liquipedia()
             cache["upcoming_matches"]["data"] = result
             cache["upcoming_matches"]["timestamp"] = datetime.utcnow()
             return result
@@ -487,7 +473,7 @@ async def check_upcoming_matches():
                         f"@Notificações FURIA\n"
                         f"📅 Jogo da FURIA em breve!\n"
                         f"FURIA vs {opponent} | {date} | {event}\n"
-                        f"Acompanhe em: [Flashscore](https://www.flashscore.com/team/furia/6z2eC9tF/results/)"
+                        f"Acompanhe em: [Liquipedia](https://liquipedia.net/counterstrike/FURIA_Esports)"
                     )
                     await channel.send(notification_message)
                     notified_matches.append(match_id)
@@ -498,7 +484,7 @@ async def check_upcoming_matches():
 
         except Exception as e:
             print(f"Erro ao verificar próximos jogos: {str(e)}")
-            # Se houver erro na PandaScore, não tentamos Flashscore aqui, pois get_upcoming_matches() já lida com isso
+            # Se houver erro na PandaScore, não tentamos Liquipedia aqui, pois get_upcoming_matches() já lida com isso
         
         await asyncio.sleep(21600)  # Verifica a cada 6 horas
 
