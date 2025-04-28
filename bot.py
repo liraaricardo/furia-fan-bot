@@ -17,7 +17,7 @@ intents.members = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
-# ID do time da FURIA na PandaScore (atualizado com o ID correto)
+# ID do time da FURIA na PandaScore
 FURIA_ID = 124530
 # Chave da API da PandaScore (obtida via variável de ambiente)
 PANDASCORE_API_KEY = os.getenv("PANDASCORE_API_KEY")
@@ -28,8 +28,27 @@ NOTIFICATION_CHANNEL_ID = int(os.getenv("NOTIFICATION_CHANNEL_ID", "123456789"))
 # Lista para rastrear jogos já notificados (evitar notificações duplicadas)
 notified_matches = []
 
+# Cache para armazenar resultados da API
+cache = {
+    "upcoming_matches": {"data": None, "timestamp": None},
+    "recent_results": {"data": None, "timestamp": None}
+}
+CACHE_DURATION = 3600  # 1 hora em segundos
+
+# Função para verificar se o cache está válido
+def is_cache_valid(cache_entry):
+    if cache_entry["data"] is None or cache_entry["timestamp"] is None:
+        return False
+    elapsed_time = (datetime.utcnow() - cache_entry["timestamp"]).total_seconds()
+    return elapsed_time < CACHE_DURATION
+
 # Função para buscar Próximos Jogos usando a PandaScore
 def get_upcoming_matches():
+    # Verifica se o cache está válido
+    if is_cache_valid(cache["upcoming_matches"]):
+        print("Usando cache para próximos jogos")
+        return cache["upcoming_matches"]["data"]
+
     try:
         url = f"https://api.pandascore.co/csgo/matches/upcoming?filter[opponent_id]={FURIA_ID}&sort=begin_at&per_page=10&token={PANDASCORE_API_KEY}"
         response = requests.get(url)
@@ -37,20 +56,31 @@ def get_upcoming_matches():
         matches = response.json()
 
         if not matches:
-            return "Atualmente, não há partidas futuras agendadas para a FURIA.\n\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
+            result = "Atualmente, não há partidas futuras agendadas para a FURIA.\n\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
+        else:
+            matches_text = "📅 Próximos jogos da FURIA:\n\n"
+            for match in matches[:3]:  # Limita a 3 partidas
+                opponent = match['opponents'][1]['opponent']['name'] if match['opponents'][0]['opponent']['id'] == FURIA_ID else match['opponents'][0]['opponent']['name']
+                date = datetime.strptime(match['begin_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y %H:%M UTC")
+                event = match['league']['name']
+                matches_text += f"- FURIA vs {opponent} | {date} | {event}\n"
+            result = matches_text
 
-        matches_text = "📅 Próximos jogos da FURIA:\n\n"
-        for match in matches[:3]:  # Limita a 3 partidas
-            opponent = match['opponents'][1]['opponent']['name'] if match['opponents'][0]['opponent']['id'] == FURIA_ID else match['opponents'][0]['opponent']['name']
-            date = datetime.strptime(match['begin_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y %H:%M UTC")
-            event = match['league']['name']
-            matches_text += f"- FURIA vs {opponent} | {date} | {event}\n"
-        return matches_text
+        # Atualiza o cache
+        cache["upcoming_matches"]["data"] = result
+        cache["upcoming_matches"]["timestamp"] = datetime.utcnow()
+        return result
     except Exception as e:
+        print(f"Erro ao buscar próximos jogos: {str(e)}")
         return f"⚠️ Não foi possível buscar os próximos jogos no momento.\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
 
 # Função para buscar Últimos Resultados usando a PandaScore
 def get_recent_results():
+    # Verifica se o cache está válido
+    if is_cache_valid(cache["recent_results"]):
+        print("Usando cache para resultados recentes")
+        return cache["recent_results"]["data"]
+
     try:
         url = f"https://api.pandascore.co/csgo/matches/past?filter[opponent_id]={FURIA_ID}&sort=-begin_at&per_page=10&token={PANDASCORE_API_KEY}"
         response = requests.get(url)
@@ -58,38 +88,48 @@ def get_recent_results():
         matches = response.json()
 
         if not matches:
-            return "Não há resultados recentes disponíveis.\n\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
+            result = "Não há resultados recentes disponíveis.\n\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
+        else:
+            results_text = "✅ Últimos resultados da FURIA:\n\n"
+            for match in matches[:4]:  # Limita a 4 resultados
+                opponent = match['opponents'][1]['opponent']['name'] if match['opponents'][0]['opponent']['id'] == FURIA_ID else match['opponents'][0]['opponent']['name']
+                score = f"{match['results'][0]['score']} : {match['results'][1]['score']}" if match['results'] else "N/A"
+                event = match['league']['name']
+                date = datetime.strptime(match['begin_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y")
+                results_text += f"- {date}: FURIA {score} {opponent} | {event}\n"
+            result = results_text
 
-        results_text = "✅ Últimos resultados da FURIA:\n\n"
-        for match in matches[:4]:  # Limita a 4 resultados
-            opponent = match['opponents'][1]['opponent']['name'] if match['opponents'][0]['opponent']['id'] == FURIA_ID else match['opponents'][0]['opponent']['name']
-            score = f"{match['results'][0]['score']} : {match['results'][1]['score']}" if match['results'] else "N/A"
-            event = match['league']['name']
-            date = datetime.strptime(match['begin_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y")
-            results_text += f"- {date}: FURIA {score} {opponent} | {event}\n"
-        return results_text
+        # Atualiza o cache
+        cache["recent_results"]["data"] = result
+        cache["recent_results"]["timestamp"] = datetime.utcnow()
+        return result
     except Exception as e:
+        print(f"Erro ao buscar resultados recentes: {str(e)}")
         return f"⚠️ Não foi possível buscar os resultados recentes no momento.\nAcompanhe atualizações em: [HLTV.org](https://www.hltv.org/team/8297/furia)"
 
 # Função para verificar e notificar sobre próximos jogos
 async def check_upcoming_matches():
     while True:
         try:
-            url = f"https://api.pandascore.co/csgo/matches/upcoming?filter[opponent_id]={FURIA_ID}&sort=begin_at&per_page=10&token={PANDASCORE_API_KEY}"
-            response = requests.get(url)
-            response.raise_for_status()
-            matches = response.json()
-
-            if not matches:
+            # Usa a função get_upcoming_matches para aproveitar o cache
+            upcoming_matches_text = get_upcoming_matches()
+            # Verifica se há jogos no cache
+            if "Atualmente, não há partidas futuras agendadas" in upcoming_matches_text:
                 print("Nenhum jogo futuro encontrado.")
-                await asyncio.sleep(3600)  # Verifica a cada hora
+                await asyncio.sleep(7200)  # Verifica a cada 2 horas
                 continue
 
             channel = client.get_channel(NOTIFICATION_CHANNEL_ID)
             if not channel:
                 print(f"Canal de notificação {NOTIFICATION_CHANNEL_ID} não encontrado.")
-                await asyncio.sleep(3600)
+                await asyncio.sleep(7200)
                 continue
+
+            # Faz uma nova requisição para obter os dados brutos (necessário para notificações)
+            url = f"https://api.pandascore.co/csgo/matches/upcoming?filter[opponent_id]={FURIA_ID}&sort=begin_at&per_page=10&token={PANDASCORE_API_KEY}"
+            response = requests.get(url)
+            response.raise_for_status()
+            matches = response.json()
 
             for match in matches:
                 match_id = match['id']
@@ -122,7 +162,7 @@ async def check_upcoming_matches():
         except Exception as e:
             print(f"Erro ao verificar próximos jogos: {str(e)}")
         
-        await asyncio.sleep(3600)  # Verifica a cada hora
+        await asyncio.sleep(7200)  # Verifica a cada 2 horas
 
 # Evento que é chamado quando o bot está pronto
 @client.event
@@ -242,7 +282,7 @@ async def on_interaction(interaction: discord.Interaction):
             )
         else:
             await interaction.response.edit_message(
-                content="� Bellamy Você não tem as notificações ativadas!",
+                content="🔔 Você não tem as notificações ativadas!",
                 view=back_view
             )
     elif custom_id == "voltar":
@@ -288,5 +328,3 @@ if not TOKEN:
 
 # Inicia o bot
 client.run(TOKEN)
-
-
