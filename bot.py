@@ -78,17 +78,17 @@ async def on_interaction(interaction: discord.Interaction):
     elif custom_id == "lineup":
         await interaction.response.edit_message(
             content="🧩 Conheça a line-up atual da FURIA:\n\n"
-                    "🎯 KSCERATO: Rifler técnico e referência de consistência.\n"
+                    "🎯 **KSCERATO**: Rifler técnico e referência de consistência.\n"
                     "   [Twitch](https://www.twitch.tv/kscerato) | [Twitter](https://twitter.com/kscerato)\n"
-                    "🔥 yuurih: Rifler versátil e extremamente confiável.\n"
-                    "   [Twitch](https://www.twitch.tv/yuurihfps) | [Twitter](https://twitter.com/yuurihfps)\n"
-                    "🎓 FalleN: Lenda brasileira, agora rifler e IGL da equipe.\n"
+                    "🔥 **yuurih**: Rifler versátil e extremamente confiável.\n"
+                    "   [Twitter](https://twitter.com/yuurih)\n"
+                    "🎓 **FalleN**: Lenda brasileira, agora rifler e IGL da equipe.\n"
                     "   [Twitch](https://www.twitch.tv/fallen) | [Twitter](https://twitter.com/FalleNCS)\n"
-                    "🧊 molodoy: AWPer do Cazaquistão, jovem promessa no cenário internacional.\n"
-                    "   [Twitch](https://www.twitch.tv/tvoy_molodoy) | [Twitter](https://twitter.com/tvoy_molodoy)\n"
-                    "⚡ YEKINDAR: Rifler agressivo da Letônia, trazendo experiência internacional.\n"
+                    "🧊 **molodoy**: AWPer do Cazaquistão, jovem promessa no cenário internacional.\n"
+                    "   [Twitter](https://twitter.com/tvoy_molodoy)\n"
+                    "⚡ **YEKINDAR**: Rifler agressivo da Letônia, trazendo experiência internacional.\n"
                     "   [Twitch](https://www.twitch.tv/yekindar) | [Twitter](https://twitter.com/yek1ndar)\n"
-                    "🧠 Lucid: Coach e estrategista da FURIA.\n",
+                    "🧠 **Lucid**: Coach e estrategista da FURIA.\n",
             view=back_view
         )
     elif custom_id == "redes":
@@ -96,13 +96,13 @@ async def on_interaction(interaction: discord.Interaction):
             content="🌐 Redes Sociais da FURIA:\n\n"
                     "**Redes Oficiais da FURIA**\n"
                     "🐦 [Twitter](https://twitter.com/FURIA)\n"
-                    "▶️ [YouTube](https://youtube.com/@furiaggcs?si=xtcq9u5MZGFzg2G-)\n"
+                    "▶️ [YouTube](https://www.youtube.com/@furiaggcs)\n"
                     "📸 [Instagram](https://www.instagram.com/furiagg/)\n"
                     "🛒 [Loja Oficial](https://store.furia.gg/)\n"
                     "📺 [FURIAtv no Twitch](https://www.twitch.tv/furiatv)\n\n"
                     "**Streamers e Criadores de Conteúdo da FURIA CS**\n"
-                    "🎮 ableJ: [Twitch](https://www.twitch.tv/ablej) | [Twitter](https://twitter.com/ablejcs)\n"
-                    "🎮 Xarola: [Twitch](https://www.twitch.tv/xarola) | [Twitter](https://twitter.com/xarolaa_)\n",
+                    "🎮 **ableJ**: [Twitter](https://twitter.com/ablejcs)\n"
+                    "🎮 **Xarola**: [Twitch](https://www.twitch.tv/xarola)\n",
             view=back_view
         )
     elif custom_id == "voltar":
@@ -157,3 +157,4 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Erro ao iniciar o bot: {str(e)}")
         raise
+
