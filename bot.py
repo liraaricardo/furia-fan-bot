@@ -81,7 +81,7 @@ async def on_interaction(interaction: discord.Interaction):
                     "🎯 **KSCERATO**: Rifler técnico e referência de consistência.\n"
                     "   [Twitch](https://www.twitch.tv/kscerato) | [Twitter](https://twitter.com/kscerato)\n"
                     "🔥 **yuurih**: Rifler versátil e extremamente confiável.\n"
-                    "   [Twitter](https://twitter.com/yuurih)\n"
+                    "   [Twitch](https://www.twitch.tv/yuurih) | [Twitter](https://twitter.com/yuurih)\n"
                     "🎓 **FalleN**: Lenda brasileira, agora rifler e IGL da equipe.\n"
                     "   [Twitch](https://www.twitch.tv/fallen) | [Twitter](https://twitter.com/FalleNCS)\n"
                     "🧊 **molodoy**: AWPer do Cazaquistão, jovem promessa no cenário internacional.\n"
@@ -101,7 +101,7 @@ async def on_interaction(interaction: discord.Interaction):
                     "🛒 [Loja Oficial](https://store.furia.gg/)\n"
                     "📺 [FURIAtv no Twitch](https://www.twitch.tv/furiatv)\n\n"
                     "**Streamers e Criadores de Conteúdo da FURIA CS**\n"
-                    "🎮 **ableJ**: [Twitter](https://twitter.com/ablejcs)\n"
+                    "🎮 **ableJ**: [Twitch](https://m.twitch.tv/ablej/home)\n"
                     "🎮 **Xarola**: [Twitch](https://www.twitch.tv/xarola)\n",
             view=back_view
         )
@@ -157,4 +157,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Erro ao iniciar o bot: {str(e)}")
         raise
+
 
