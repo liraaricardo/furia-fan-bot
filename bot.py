@@ -17,8 +17,8 @@ intents.members = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
-# ID do time da FURIA na PandaScore
-FURIA_ID = 8297
+# ID do time da FURIA na PandaScore (atualizado com o ID correto)
+FURIA_ID = 124530
 # Chave da API da PandaScore (obtida via variável de ambiente)
 PANDASCORE_API_KEY = os.getenv("PANDASCORE_API_KEY")
 if not PANDASCORE_API_KEY:
@@ -31,7 +31,7 @@ notified_matches = []
 # Função para buscar Próximos Jogos usando a PandaScore
 def get_upcoming_matches():
     try:
-        url = f"https://api.pandascore.co/csgo/matches/upcoming?filter[opponent_id]={FURIA_ID}&token={PANDASCORE_API_KEY}"
+        url = f"https://api.pandascore.co/csgo/matches/upcoming?filter[opponent_id]={FURIA_ID}&sort=begin_at&per_page=10&token={PANDASCORE_API_KEY}"
         response = requests.get(url)
         response.raise_for_status()
         matches = response.json()
@@ -52,7 +52,7 @@ def get_upcoming_matches():
 # Função para buscar Últimos Resultados usando a PandaScore
 def get_recent_results():
     try:
-        url = f"https://api.pandascore.co/csgo/matches/past?filter[opponent_id]={FURIA_ID}&token={PANDASCORE_API_KEY}"
+        url = f"https://api.pandascore.co/csgo/matches/past?filter[opponent_id]={FURIA_ID}&sort=-begin_at&per_page=10&token={PANDASCORE_API_KEY}"
         response = requests.get(url)
         response.raise_for_status()
         matches = response.json()
@@ -75,7 +75,7 @@ def get_recent_results():
 async def check_upcoming_matches():
     while True:
         try:
-            url = f"https://api.pandascore.co/csgo/matches/upcoming?filter[opponent_id]={FURIA_ID}&token={PANDASCORE_API_KEY}"
+            url = f"https://api.pandascore.co/csgo/matches/upcoming?filter[opponent_id]={FURIA_ID}&sort=begin_at&per_page=10&token={PANDASCORE_API_KEY}"
             response = requests.get(url)
             response.raise_for_status()
             matches = response.json()
@@ -191,7 +191,8 @@ async def on_interaction(interaction: discord.Interaction):
                     "🎓 FalleN: Lenda brasileira, agora rifler e IGL da equipe.\n"
                     "🧊 molodoy: AWPer do Cazaquistão, jovem promessa no cenário internacional.\n"
                     "⚡ YEKINDAR: Rifler agressivo da Letônia, trazendo experiência internacional.\n"
-                    "🧠 sidde: Coach e estrategista da FURIA.",
+                    "🛡️ skullz: Rifler brasileiro, nova adição ao time.\n"
+                    "🧠 guerri: Coach e estrategista da FURIA.",
             view=back_view
         )
     elif custom_id == "redes":
@@ -241,7 +242,7 @@ async def on_interaction(interaction: discord.Interaction):
             )
         else:
             await interaction.response.edit_message(
-                content="🔔 Você não tem as notificações ativadas!",
+                content="� Bellamy Você não tem as notificações ativadas!",
                 view=back_view
             )
     elif custom_id == "voltar":
@@ -287,3 +288,5 @@ if not TOKEN:
 
 # Inicia o bot
 client.run(TOKEN)
+
+
