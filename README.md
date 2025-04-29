@@ -28,7 +28,8 @@ Tudo isso por meio de botões interativos, criando uma experiência conversacion
 
 ## Como Funciona
 
-1. Adicione o bot ao seu servidor do Discord.
+1. Adicione o bot ao seu servidor do Discord:
+   👉 [Clique aqui para convidar o bot](https://discord.com/oauth2/authorize?client_id=1366216478302408736&permissions=84992&integration_type=0&scope=bot+applications.commands)
 2. Use o comando `/start` para iniciar.
 3. Escolha entre os botões disponíveis:
    - Ver próximos jogos
@@ -65,6 +66,6 @@ Sinta-se livre para utilizar, modificar e contribuir!
 
 ---
 
-**Desenvolvido por Ricardo Lira Silva.**  
+**Desenvolvido por Ricardo Lira Silva.**
 
 
