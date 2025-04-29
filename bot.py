@@ -96,7 +96,7 @@ async def on_interaction(interaction: discord.Interaction):
             content="🌐 **Redes Oficiais da FURIA:**\n\n"
                     "🐾 **Redes Gerais:**\n"
                     "🐦 [Twitter](https://twitter.com/FURIA)\n"
-                    "▶️ [YouTube Principal](https://www.youtube.com/@FURIA)\n"
+                    "▶️ [YouTube Principal](https://youtube.com/@furiagg?si=jhP3YWT30dE8d_Kx)\n"
                     "📸 [Instagram](https://www.instagram.com/furiagg/)\n\n"
                     "🎯 **CS:GO:**\n"
                     "▶️ [YouTube CS](https://www.youtube.com/@furiaggcs)\n"
